@@ -1,0 +1,36 @@
+forecast_id: forecast-YYYYMMDD-xauusd-p3d
+question: 在预先定义的结果空间中，XAU/USD 在未来 3 日属于哪一情景？
+instrument: XAUUSD
+created_at: "YYYY-MM-DDTHH:MM:SSZ"
+data_cutoff: "YYYY-MM-DDTHH:MM:SSZ"
+horizon:
+  starts_at: "YYYY-MM-DDTHH:MM:SSZ"
+  ends_at: "YYYY-MM-DDTHH:MM:SSZ"
+outcomes:
+  - outcome_id: continuation
+    description: 延续当前主状态
+    probability: 0.50
+  - outcome_id: range
+    description: 回到预定义区间状态
+    probability: 0.30
+  - outcome_id: reversal
+    description: 满足预定义反向状态条件
+    probability: 0.20
+baseline:
+  method: historical-unconditional-frequency
+  probabilities:
+    continuation: 0.34
+    range: 0.33
+    reversal: 0.33
+evidence_refs: []
+counterevidence_refs: []
+resolution_rule: 使用数据截止前预注册的状态分类规则，在 horizon.ends_at 后解析。
+invalidation_conditions:
+  - 数据质量或交易时段异常使结果无法按原规则解析
+abstain: false
+abstain_reason: null
+status: open
+resolved_outcome_id: null
+model_versions:
+  - baseline:0.1.0
+

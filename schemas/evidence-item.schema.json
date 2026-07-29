@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://story2u.github.io/dao/schemas/evidence-item.schema.json",
+  "title": "Evidence Item",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "evidence_id",
+    "layer",
+    "kind",
+    "claim",
+    "source",
+    "observed_at",
+    "available_at",
+    "recorded_at",
+    "quality"
+  ],
+  "properties": {
+    "evidence_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "layer": {
+      "enum": ["classical", "modern", "official", "market"]
+    },
+    "kind": {
+      "enum": ["observation", "inference", "hypothesis", "decision"]
+    },
+    "claim": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "locator"],
+      "properties": {
+        "title": {"type": "string", "minLength": 1},
+        "author": {"type": ["string", "null"]},
+        "locator": {"type": "string", "minLength": 1},
+        "published_at": {"type": ["string", "null"], "format": "date-time"},
+        "accessed_at": {"type": ["string", "null"], "format": "date-time"}
+      }
+    },
+    "observed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "available_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reliability", "independence", "freshness"],
+      "properties": {
+        "reliability": {"type": "number", "minimum": 0, "maximum": 1},
+        "independence": {"type": "number", "minimum": 0, "maximum": 1},
+        "freshness": {"type": "number", "minimum": 0, "maximum": 1},
+        "notes": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "tags": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string"}
+    }
+  }
+}
+

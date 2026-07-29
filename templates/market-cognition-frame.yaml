@@ -1,0 +1,52 @@
+frame_id: frame-YYYYMMDD-xauusd-p3d
+instrument: XAUUSD
+as_of: "YYYY-MM-DDTHH:MM:SSZ"
+data_cutoff: "YYYY-MM-DDTHH:MM:SSZ"
+horizon: P3D
+state:
+  direction: uncertain
+  lifecycle: transition
+  stability: fragile
+  posterior:
+    up: 0.34
+    down: 0.33
+    range: 0.33
+change_model:
+  xing: 待结构化市场观察
+  shi: 0.00
+  ji: 0.50
+  shi_temporal: 日线判断，未来三日
+  wei: transition
+  xin: 0.40
+evidence_refs:
+  - evidence:placeholder
+counterevidence_refs: []
+scenarios:
+  - scenario_id: base
+    description: 基准情景
+    probability: 0.50
+    triggers: []
+  - scenario_id: alternative
+    description: 反方情景
+    probability: 0.50
+    triggers: []
+invalidation_conditions:
+  - 关键输入缺失或新证据使当前状态后验失效
+risk:
+  level: high
+  allowed_actions:
+    - observe
+    - research
+  warnings:
+    - 示例模板，不可作为市场判断
+abstain: true
+abstain_reason: 尚未填充真实数据与模型结果
+data_gaps: []
+provenance:
+  data_snapshot: placeholder
+  feature_version: placeholder
+  model_versions:
+    - placeholder
+  prompt_version: null
+  contract_version: 1.0.0
+

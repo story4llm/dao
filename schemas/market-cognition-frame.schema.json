@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://story2u.github.io/dao/schemas/market-cognition-frame.schema.json",
+  "title": "Market Cognition Frame",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "frame_id",
+    "instrument",
+    "as_of",
+    "data_cutoff",
+    "horizon",
+    "state",
+    "change_model",
+    "evidence_refs",
+    "counterevidence_refs",
+    "scenarios",
+    "invalidation_conditions",
+    "risk",
+    "provenance"
+  ],
+  "properties": {
+    "frame_id": {"type": "string", "minLength": 1},
+    "instrument": {"type": "string", "minLength": 1},
+    "as_of": {"type": "string", "format": "date-time"},
+    "data_cutoff": {"type": "string", "format": "date-time"},
+    "horizon": {"type": "string", "minLength": 1},
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["direction", "lifecycle", "stability", "posterior"],
+      "properties": {
+        "direction": {"enum": ["up", "down", "range", "uncertain"]},
+        "lifecycle": {
+          "enum": ["formation", "expansion", "maturity", "exhaustion", "transition"]
+        },
+        "stability": {"enum": ["stable", "fragile", "critical"]},
+        "posterior": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    "change_model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["xing", "shi", "ji", "shi_temporal", "wei", "xin"],
+      "properties": {
+        "xing": {"type": "string", "minLength": 1},
+        "shi": {"type": "number", "minimum": -1, "maximum": 1},
+        "ji": {"type": "number", "minimum": 0, "maximum": 1},
+        "shi_temporal": {"type": "string", "minLength": 1},
+        "wei": {
+          "enum": ["formation", "expansion", "maturity", "exhaustion", "transition"]
+        },
+        "xin": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "evidence_refs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string"}
+    },
+    "counterevidence_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string"}
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["scenario_id", "description", "probability", "triggers"],
+        "properties": {
+          "scenario_id": {"type": "string", "minLength": 1},
+          "description": {"type": "string", "minLength": 1},
+          "probability": {"type": "number", "minimum": 0, "maximum": 1},
+          "triggers": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    },
+    "invalidation_conditions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "risk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level", "allowed_actions", "warnings"],
+      "properties": {
+        "level": {"enum": ["low", "medium", "high", "blocked"]},
+        "allowed_actions": {
+          "type": "array",
+          "items": {"enum": ["observe", "wait", "research", "simulate", "avoid"]}
+        },
+        "warnings": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "abstain": {"type": "boolean", "default": false},
+    "abstain_reason": {"type": ["string", "null"]},
+    "data_gaps": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["data_snapshot", "feature_version", "model_versions", "contract_version"],
+      "properties": {
+        "data_snapshot": {"type": "string", "minLength": 1},
+        "feature_version": {"type": "string", "minLength": 1},
+        "model_versions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string"}
+        },
+        "prompt_version": {"type": ["string", "null"]},
+        "contract_version": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}
+

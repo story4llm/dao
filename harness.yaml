@@ -1,0 +1,41 @@
+version: 1
+name: dao
+title: AI 黄金趋势认知系统
+phase: research-to-design
+canonical_instructions: AGENTS.md
+
+mission:
+  target: gold-market-trend-cognition
+  output: conditional-probabilistic-decision-support
+  excluded:
+    - deterministic-price-prediction
+    - unvalidated-divination-signals
+    - live-order-execution
+
+entrypoints:
+  human: README.md
+  agent: AGENTS.md
+  state: state/PROJECT_STATE.md
+  context_map: docs/harness/CONTEXT_MAP.md
+
+commands:
+  validate: python3 scripts/validate_harness.py
+
+contracts:
+  evidence: schemas/evidence-item.schema.json
+  forecast: schemas/forecast-contract.schema.json
+  cognition_frame: schemas/market-cognition-frame.schema.json
+
+state_files:
+  - state/PROJECT_STATE.md
+  - state/DECISION_LOG.md
+  - state/OPEN_QUESTIONS.md
+
+quality_gates:
+  - traceable-evidence
+  - point-in-time-data
+  - calibrated-probabilities
+  - explicit-invalidation
+  - adversarial-review
+  - abstention-support
+
