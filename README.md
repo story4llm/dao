@@ -15,11 +15,16 @@ DAO（道）是一个面向黄金市场的 AI 趋势认知项目。它把中国�
 
 ## 当前阶段
 
-仓库目前处于 `research-to-design` 阶段：研究报告已经形成，正在把其中的概念拆解为领域本体、数据契约、Agent 协议、评估方法和可实施的 MVP。
+仓库目前处于 `runtime-readiness` 阶段：研究、认知和评估契约已经形成，数据源资格矩阵与首个每日运行协议已经落地。当前重心是用私有 point-in-time 证据包执行第一份真实、可回放的 XAU/USD 认知帧，而不是建设前端或自动交易代码。
 
 核心研究报告：
 
 - [《从易经“观变”到 AI 黄金趋势智能系统》](docs/research/system-design.md)
+- [产品需求文档 v0.1](docs/product/prd-v0.1.md)
+- [AI 趋势认知规格 v0.1](docs/product/trend-cognition-spec-v0.1.md)
+- [评估契约 v0.2](evals/evaluation-contract-v0.2.md)
+- [数据源资格矩阵 v0.1](docs/data/data-source-qualification-matrix-v0.1.md)
+- [每日运行手册](docs/harness/DAILY_RUNBOOK.md)
 
 ## Harness 如何工作
 
@@ -45,6 +50,8 @@ flowchart TD
 | [上下文地图](docs/harness/CONTEXT_MAP.md) | 按任务类型加载最小上下文 |
 | [工作流](docs/harness/WORKFLOW.md) | 从立项到提交的标准循环 |
 | [质量门](docs/harness/QUALITY_GATES.md) | 研究、数据、模型和输出的验收标准 |
+| [每日运行手册](docs/harness/DAILY_RUNBOOK.md) | 让 AI 读取 Harness 并执行一次认知运行 |
+| [每日运行 Prompt](prompts/daily-cognition-run-v0.1.md) | AI 的固定执行协议 |
 | [项目状态](state/PROJECT_STATE.md) | 当前进展、下一步与阻塞项 |
 | [任务模板](tasks/TEMPLATE.md) | 每项工作的范围与完成定义 |
 
@@ -62,6 +69,8 @@ flowchart TD
 │   ├── product/          # 产品目标与边界
 │   └── research/         # 研究报告与研究记录
 ├── evals/                # 预测与系统评估规范
+├── examples/             # 安全边界与运行样例
+├── prompts/              # 可重复调用的 AI 运行协议
 ├── schemas/              # 机器可验证的数据契约
 ├── scripts/              # Harness 校验工具
 ├── state/                # 跨会话项目记忆
@@ -82,6 +91,16 @@ make validate
 
 5. 更新项目状态、决策日志和任务结果，再提交一个主题明确的 PR。
 
+## 执行一次黄金趋势认知
+
+1. 连接 GitHub，并让 AI 读取 `AGENTS.md` 与 `prompts/daily-cognition-run-v0.1.md`。
+2. 附加通过资格门的私有 evidence bundle；不要把 API token 粘贴进聊天或仓库。
+3. 指定 `mode=certified`、`instrument=XAUUSD` 和本次 `data_cutoff`。
+4. AI 先检查许可、时点、bar 语义、完整性、哈希与冻结基线。
+5. 只有全部核心门通过，才生成可评分 Forecast；否则输出 blocked/Q0 并预测弃权。
+
+可直接复制的完整调用方式见[每日运行手册](docs/harness/DAILY_RUNBOOK.md)。
+
 ## 核心约束
 
 - 传统思想提供问题框架与命名，不进入未经验证的概率引擎。
@@ -92,5 +111,4 @@ make validate
 
 ## 下一里程碑
 
-第一阶段不追求自动交易，而是交付一个可回放、可评分的每日/事件驱动“市场认知帧”研究原型。具体范围见 [项目愿景](docs/product/vision.md) 与 [项目状态](state/PROJECT_STATE.md)。
-
+数据源资格矩阵、GitHub/私有证据分层和每日运行协议已经完成。下一步准备第一份 OANDA 或等价合格的私有 evidence bundle，冻结朴素基线，并执行首个真实 `certified` run；之后才能生成第一份 Q1 候选认知帧。具体见[数据源矩阵](docs/data/data-source-qualification-matrix-v0.1.md)、[每日运行手册](docs/harness/DAILY_RUNBOOK.md)与[项目状态](state/PROJECT_STATE.md)。

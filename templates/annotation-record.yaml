@@ -1,0 +1,24 @@
+record_id: annotation-sample-annotator
+sample_id: sample-placeholder
+phase: independent
+annotator_ref: annotator-pseudonym
+created_at: "YYYY-MM-DDTHH:MM:SSZ"
+data_cutoff: "YYYY-MM-DDTHH:MM:SSZ"
+evidence_snapshot_ref: evidence-snapshot-placeholder
+frame_ref: frame-placeholder
+input_annotation_refs: []
+blinding:
+  future_outcomes_hidden: true
+  target_class_hidden: true
+temporal_audit:
+  checked_at: "YYYY-MM-DDTHH:MM:SSZ"
+  violations: []
+disagreements: []
+certification:
+  requested: Q1
+  awarded: Q0
+  blocking_reasons:
+    - 尚未验证数据时区、许可与首次可得时间
+provenance:
+  contract_version: 0.2.0
+  guide_version: gold-standard-annotation-guide:0.1

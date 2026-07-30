@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://story2u.github.io/dao/schemas/market-cognition-frame.schema.json",
   "title": "Market Cognition Frame",
+  "description": "Auditable market belief state. Contract version 2.0.0.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -17,6 +18,7 @@
     "scenarios",
     "invalidation_conditions",
     "risk",
+    "abstention",
     "provenance"
   ],
   "properties": {
@@ -37,11 +39,12 @@
         "stability": {"enum": ["stable", "fragile", "critical"]},
         "posterior": {
           "type": "object",
-          "minProperties": 1,
-          "additionalProperties": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1
+          "additionalProperties": false,
+          "required": ["up", "down", "range"],
+          "properties": {
+            "up": {"type": "number", "minimum": 0, "maximum": 1},
+            "down": {"type": "number", "minimum": 0, "maximum": 1},
+            "range": {"type": "number", "minimum": 0, "maximum": 1}
           }
         }
       }
@@ -78,13 +81,25 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["scenario_id", "description", "probability", "triggers"],
+        "required": [
+          "scenario_id",
+          "resolution_outcome_id",
+          "description",
+          "probability",
+          "triggers"
+        ],
         "properties": {
           "scenario_id": {"type": "string", "minLength": 1},
+          "resolution_outcome_id": {"enum": ["up", "down", "range"]},
           "description": {"type": "string", "minLength": 1},
-          "probability": {"type": "number", "minimum": 0, "maximum": 1},
+          "probability": {
+            "type": ["number", "null"],
+            "minimum": 0,
+            "maximum": 1
+          },
           "triggers": {
             "type": "array",
+            "minItems": 1,
             "items": {"type": "string", "minLength": 1}
           }
         }
@@ -98,12 +113,17 @@
     "risk": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["level", "allowed_actions", "warnings"],
+      "required": ["level", "research_posture", "warnings"],
       "properties": {
         "level": {"enum": ["low", "medium", "high", "blocked"]},
-        "allowed_actions": {
-          "type": "array",
-          "items": {"enum": ["observe", "wait", "research", "simulate", "avoid"]}
+        "research_posture": {
+          "enum": [
+            "observe",
+            "investigate",
+            "wait_for_data",
+            "simulate_only",
+            "do_not_publish"
+          ]
         },
         "warnings": {
           "type": "array",
@@ -111,8 +131,15 @@
         }
       }
     },
-    "abstain": {"type": "boolean", "default": false},
-    "abstain_reason": {"type": ["string", "null"]},
+    "abstention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "forecast"],
+      "properties": {
+        "state": {"$ref": "#/$defs/abstentionDecision"},
+        "forecast": {"$ref": "#/$defs/abstentionDecision"}
+      }
+    },
     "data_gaps": {
       "type": "array",
       "items": {"type": "string"}
@@ -120,7 +147,13 @@
     "provenance": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["data_snapshot", "feature_version", "model_versions", "contract_version"],
+      "required": [
+        "data_snapshot",
+        "feature_version",
+        "model_versions",
+        "contract_version",
+        "certification_level"
+      ],
       "properties": {
         "data_snapshot": {"type": "string", "minLength": 1},
         "feature_version": {"type": "string", "minLength": 1},
@@ -130,9 +163,100 @@
           "items": {"type": "string"}
         },
         "prompt_version": {"type": ["string", "null"]},
-        "contract_version": {"type": "string", "minLength": 1}
+        "contract_version": {"type": "string", "minLength": 1},
+        "certification_level": {"enum": ["Q0", "Q1", "Q2", "Q3"]},
+        "resolution_protocol_version": {"type": ["string", "null"]}
       }
     }
-  }
+  },
+  "$defs": {
+    "abstentionDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["abstain", "reason_codes", "reason"],
+      "properties": {
+        "abstain": {"type": "boolean"},
+        "reason_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "insufficient_data",
+              "temporal_integrity",
+              "evidence_conflict",
+              "out_of_distribution",
+              "unmodelled_event",
+              "uncalibrated",
+              "unresolvable_state",
+              "unresolvable_outcomes",
+              "model_failure",
+              "other"
+            ]
+          }
+        },
+        "reason": {"type": ["string", "null"]}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "properties": {
+              "direction": {"const": "range"}
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "state": {
+            "properties": {
+              "lifecycle": {
+                "enum": ["formation", "maturity", "transition"]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "abstention": {
+            "properties": {
+              "forecast": {
+                "properties": {
+                  "abstain": {"const": true}
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "scenarios": {
+            "items": {
+              "properties": {
+                "probability": {"type": "null"}
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "scenarios": {
+            "items": {
+              "properties": {
+                "probability": {"type": "number"}
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }
-

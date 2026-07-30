@@ -2,6 +2,13 @@
 
 本项目评估“是否形成可靠、校准、可解释的趋势认知”，而不是只看一次交易盈亏。
 
+当前 M1 入口：
+
+- [金标准趋势认知标注指南 v0.1](gold-standard-annotation-guide-v0.1.md)
+- [评估契约 v0.2](evaluation-contract-v0.2.md)
+- [五类 Q0 协议试标](pilots/README.md)
+- [试标发现](pilots/pilot-findings.md)
+
 ## 1. 概率质量
 
 - Brier score
@@ -36,8 +43,8 @@
 
 1. 按 `data_cutoff` 重建当时可见信息。
 2. 冻结特征、模型、Prompt 和融合规则版本。
-3. 生成 Forecast Contract 与 Market Cognition Frame。
-4. 到期后按预注册的 resolution rule 解析结果。
+3. 先冻结 Market Cognition Frame，再按是否预测弃权生成 Forecast Contract。
+4. 到期后按 `xauusd-direction-5d:0.2.0` 追加独立 Resolution Record。
 5. 只追加评分，不改写原预测。
 6. 按月或足够样本量后检查校准与漂移。
 
@@ -51,4 +58,3 @@
 - 单一主驱动模型
 
 复杂系统只有在样本外稳定优于基线、且维护成本合理时才保留。
-

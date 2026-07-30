@@ -1,19 +1,13 @@
-.DS_Store
-.idea/
-.vscode/
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.ruff_cache/
-.venv/
-venv/
+# Credentials and local configuration
 .env
 .env.*
-!.env.example
-dist/
-build/
-coverage/
-data/raw/
-data/processed/
-artifacts/
+secrets/
 
+# Licensed or account-scoped market data
+runtime/private/
+runs/**/raw/
+
+# Local build and cache output
+__pycache__/
+*.pyc
+*.zip

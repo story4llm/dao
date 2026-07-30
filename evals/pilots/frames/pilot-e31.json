@@ -1,0 +1,104 @@
+{
+  "frame_id": "mcf-pilot-e31-v1",
+  "instrument": "XAUUSD",
+  "as_of": "2024-11-07T00:00:00Z",
+  "data_cutoff": "2024-11-07T00:00:00Z",
+  "horizon": "P5D",
+  "state": {
+    "direction": "down",
+    "lifecycle": "transition",
+    "stability": "critical",
+    "posterior": {
+      "up": 0.15,
+      "down": 0.6,
+      "range": 0.25
+    }
+  },
+  "change_model": {
+    "xing": "20 日结构仍保留此前上涨残余，但最近 5 日和 4 小时位移快速转负；美元与实际利率同步走强，旧状态已被显著破坏。",
+    "shi": -0.45,
+    "ji": 0.75,
+    "shi_temporal": "日线旧上涨向新状态迁移，4 小时下行占优；未来 3—5 个交易日观察新状态能否稳定。",
+    "wei": "transition",
+    "xin": 0.55
+  },
+  "evidence_refs": [
+    "pilot-e31-price-structure",
+    "pilot-e31-real-yield",
+    "pilot-e31-usd"
+  ],
+  "counterevidence_refs": [
+    "pilot-e31-price-structure"
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "down-stabilizes",
+      "resolution_outcome_id": "down",
+      "description": "短期下行结构获得后续日线确认，转换进入向下 formation。",
+      "probability": 0.55,
+      "triggers": [
+        "未来窗口出现更低收盘且反弹不能收复最近结构破坏区",
+        "美元或实际利率的上行压力至少一项保持"
+      ]
+    },
+    {
+      "scenario_id": "unstable-range",
+      "resolution_outcome_id": "range",
+      "description": "冲击后没有形成稳定下行，价格进入高波动平衡区。",
+      "probability": 0.3,
+      "triggers": [
+        "连续日线相互重叠且下行效率快速回落"
+      ]
+    },
+    {
+      "scenario_id": "old-up-reclaimed",
+      "resolution_outcome_id": "up",
+      "description": "价格收复结构破坏区，旧上涨状态恢复。",
+      "probability": 0.15,
+      "triggers": [
+        "日线重新收复最近 5 日下跌的大部分区域",
+        "美元和实际利率同步回落"
+      ]
+    }
+  ],
+  "invalidation_conditions": [
+    "若日线收复最近结构破坏区并保持，则 down + transition 失效",
+    "若后续只形成重叠区间而无更低收盘，应迁移为 range，而非 down + expansion"
+  ],
+  "risk": {
+    "level": "high",
+    "research_posture": "simulate_only",
+    "warnings": [
+      "转换不等于稳定下跌趋势",
+      "需要上一帧和 Cognition Delta 才能完整评价观点修正"
+    ]
+  },
+  "abstention": {
+    "state": {
+      "abstain": false,
+      "reason_codes": [],
+      "reason": null
+    },
+    "forecast": {
+      "abstain": false,
+      "reason_codes": [],
+      "reason": null
+    }
+  },
+  "data_gaps": [
+    "没有前一日 Q2 认知帧，无法形成正式 Cognition Delta",
+    "价格数据时区和 bar 语义未验证",
+    "事件新闻和仓位数据未按时点冻结"
+  ],
+  "provenance": {
+    "data_snapshot": "evals/pilots/evidence/pilot-e31.json",
+    "feature_version": "pilot-derived-features:0.1.0",
+    "model_versions": [
+      "expert-anchor:0.1.0"
+    ],
+    "prompt_version": null,
+    "contract_version": "2.0.0-q0",
+    "certification_level": "Q0",
+    "resolution_protocol_version": "xauusd-direction-5d:0.2.0"
+  }
+}

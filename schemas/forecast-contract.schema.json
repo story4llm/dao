@@ -2,10 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://story2u.github.io/dao/schemas/forecast-contract.schema.json",
   "title": "Forecast Contract",
+  "description": "Pre-registered probabilistic forecast contract. Contract version 2.0.0.",
   "type": "object",
   "additionalProperties": false,
   "required": [
+    "contract_version",
     "forecast_id",
+    "frame_id",
     "question",
     "instrument",
     "created_at",
@@ -15,10 +18,13 @@
     "baseline",
     "resolution_rule",
     "invalidation_conditions",
+    "forecast_abstention",
     "status"
   ],
   "properties": {
+    "contract_version": {"type": "string", "minLength": 1},
     "forecast_id": {"type": "string", "minLength": 1},
+    "frame_id": {"type": "string", "minLength": 1},
     "question": {"type": "string", "minLength": 1},
     "instrument": {"type": "string", "minLength": 1},
     "created_at": {"type": "string", "format": "date-time"},
@@ -26,41 +32,58 @@
     "horizon": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["starts_at", "ends_at"],
+      "required": [
+        "unit",
+        "primary_sessions",
+        "diagnostic_sessions",
+        "starts_after_cutoff"
+      ],
       "properties": {
-        "starts_at": {"type": "string", "format": "date-time"},
-        "ends_at": {"type": "string", "format": "date-time"}
+        "unit": {"const": "completed_trading_session"},
+        "primary_sessions": {"const": 5},
+        "diagnostic_sessions": {
+          "type": "array",
+          "const": [3]
+        },
+        "starts_after_cutoff": {"const": true}
       }
     },
     "outcomes": {
       "type": "array",
-      "minItems": 2,
+      "minItems": 3,
+      "maxItems": 3,
       "items": {
         "type": "object",
         "additionalProperties": false,
         "required": ["outcome_id", "description", "probability"],
         "properties": {
-          "outcome_id": {"type": "string", "minLength": 1},
+          "outcome_id": {"enum": ["up", "down", "range"]},
           "description": {"type": "string", "minLength": 1},
-          "probability": {"type": "number", "minimum": 0, "maximum": 1}
+          "probability": {
+            "type": ["number", "null"],
+            "minimum": 0,
+            "maximum": 1
+          }
         }
       }
     },
     "baseline": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["method", "probabilities"],
+      "required": ["method", "probabilities", "version"],
       "properties": {
         "method": {"type": "string", "minLength": 1},
         "probabilities": {
           "type": "object",
-          "minProperties": 2,
-          "additionalProperties": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1
+          "additionalProperties": false,
+          "required": ["up", "down", "range"],
+          "properties": {
+            "up": {"type": "number", "minimum": 0, "maximum": 1},
+            "down": {"type": "number", "minimum": 0, "maximum": 1},
+            "range": {"type": "number", "minimum": 0, "maximum": 1}
           }
-        }
+        },
+        "version": {"type": "string", "minLength": 1}
       }
     },
     "evidence_refs": {
@@ -73,22 +96,96 @@
       "uniqueItems": true,
       "items": {"type": "string"}
     },
-    "resolution_rule": {"type": "string", "minLength": 1},
+    "resolution_rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_id",
+        "reference_price_field",
+        "normalizer",
+        "neutral_band_atr_multiple",
+        "boundary_policy",
+        "missing_data_policy"
+      ],
+      "properties": {
+        "protocol_id": {"const": "xauusd-direction-5d:0.2.0"},
+        "reference_price_field": {"type": "string", "minLength": 1},
+        "normalizer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["method", "lookback_sessions", "freeze_at_cutoff"],
+          "properties": {
+            "method": {"const": "wilder_atr"},
+            "lookback_sessions": {"const": 20},
+            "freeze_at_cutoff": {"const": true}
+          }
+        },
+        "neutral_band_atr_multiple": {"const": 0.5},
+        "boundary_policy": {"const": "inclusive_range"},
+        "missing_data_policy": {"const": "mark_unresolvable"}
+      }
+    },
     "invalidation_conditions": {
       "type": "array",
       "minItems": 1,
       "items": {"type": "string", "minLength": 1}
     },
-    "abstain": {"type": "boolean", "default": false},
-    "abstain_reason": {"type": ["string", "null"]},
-    "status": {
-      "enum": ["open", "resolved", "cancelled"]
+    "forecast_abstention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["abstain", "reason_codes", "reason"],
+      "properties": {
+        "abstain": {"type": "boolean"},
+        "reason_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "reason": {"type": ["string", "null"]}
+      }
     },
-    "resolved_outcome_id": {"type": ["string", "null"]},
+    "status": {
+      "enum": ["open", "resolved", "cancelled", "not_scored"]
+    },
     "model_versions": {
       "type": "array",
       "items": {"type": "string"}
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "forecast_abstention": {
+            "properties": {
+              "abstain": {"const": true}
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "outcomes": {
+            "items": {
+              "properties": {
+                "probability": {"type": "null"}
+              }
+            }
+          },
+          "status": {"const": "not_scored"}
+        }
+      },
+      "else": {
+        "properties": {
+          "outcomes": {
+            "items": {
+              "properties": {
+                "probability": {"type": "number"}
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }
-

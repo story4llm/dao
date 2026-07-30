@@ -1,0 +1,105 @@
+{
+  "frame_id": "mcf-pilot-c22-v1",
+  "instrument": "XAUUSD",
+  "as_of": "2024-07-04T00:00:00Z",
+  "data_cutoff": "2024-07-04T00:00:00Z",
+  "horizon": "P5D",
+  "state": {
+    "direction": "range",
+    "lifecycle": "maturity",
+    "stability": "fragile",
+    "posterior": {
+      "up": 0.38,
+      "down": 0.18,
+      "range": 0.44
+    }
+  },
+  "change_model": {
+    "xing": "20 日净位移近零且路径效率极低，成熟区间仍是主解释；最近 5 日与 4 小时正向效率上升，正在测试离开区间。",
+    "shi": 0.15,
+    "ji": 0.55,
+    "shi_temporal": "日线为成熟区间，4 小时为向上突破尝试；未来 3—5 个交易日等待保持确认。",
+    "wei": "maturity",
+    "xin": 0.45
+  },
+  "evidence_refs": [
+    "pilot-c22-price-structure",
+    "pilot-c22-usd"
+  ],
+  "counterevidence_refs": [
+    "pilot-c22-price-structure",
+    "pilot-c22-real-yield"
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "range-holds",
+      "resolution_outcome_id": "range",
+      "description": "短期上冲未获得保持，价格回到原平衡区。",
+      "probability": 0.44,
+      "triggers": [
+        "突破后下一日收盘重新回到 20 日区间",
+        "4 小时正向路径效率回落"
+      ]
+    },
+    {
+      "scenario_id": "up-break-confirmed",
+      "resolution_outcome_id": "up",
+      "description": "价格离开原区间并通过后续收盘保持，进入向上 formation。",
+      "probability": 0.38,
+      "triggers": [
+        "日线收在 20 日区间上沿外",
+        "下一日收盘仍保持在区间上沿外"
+      ]
+    },
+    {
+      "scenario_id": "down-break-confirmed",
+      "resolution_outcome_id": "down",
+      "description": "价格转而向下离开平衡区，进入向下 formation。",
+      "probability": 0.18,
+      "triggers": [
+        "日线收在 20 日区间下沿外",
+        "下一日收盘仍保持在区间下沿外"
+      ]
+    }
+  ],
+  "invalidation_conditions": [
+    "任一方向突破 20 日区间并由下一日收盘保持，则 range + maturity 失效",
+    "若 20 日窗口或 holiday bar 的时间定义核验失败，则不得升级为 Q1"
+  ],
+  "risk": {
+    "level": "high",
+    "research_posture": "simulate_only",
+    "warnings": [
+      "短期突破尝试不是已确认的新趋势",
+      "同一价格证据同时支持区间与反方解释，不能重复计权"
+    ]
+  },
+  "abstention": {
+    "state": {
+      "abstain": false,
+      "reason_codes": [],
+      "reason": null
+    },
+    "forecast": {
+      "abstain": false,
+      "reason_codes": [],
+      "reason": null
+    }
+  },
+  "data_gaps": [
+    "4 小时数据时区与 2024-07-04 假期交易时段未验证",
+    "缺少可许可回放的正式区间边界快照",
+    "未纳入持仓与资金流"
+  ],
+  "provenance": {
+    "data_snapshot": "evals/pilots/evidence/pilot-c22.json",
+    "feature_version": "pilot-derived-features:0.1.0",
+    "model_versions": [
+      "expert-anchor:0.1.0"
+    ],
+    "prompt_version": null,
+    "contract_version": "2.0.0-q0",
+    "certification_level": "Q0",
+    "resolution_protocol_version": "xauusd-direction-5d:0.2.0"
+  }
+}

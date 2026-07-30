@@ -1,0 +1,39 @@
+delta_id: delta-previous-current
+previous_frame_id: frame-previous
+current_frame_id: frame-current
+previous_data_cutoff: "YYYY-MM-DDTHH:MM:SSZ"
+current_data_cutoff: "YYYY-MM-DDTHH:MM:SSZ"
+created_at: "YYYY-MM-DDTHH:MM:SSZ"
+added_evidence_refs:
+  - evidence:new
+removed_evidence_refs: []
+state_transition:
+  before:
+    direction: uncertain
+    lifecycle: transition
+    stability: critical
+  after:
+    direction: uncertain
+    lifecycle: transition
+    stability: fragile
+posterior_delta:
+  up: 0.00
+  down: 0.00
+  range: 0.00
+scenario_updates:
+  - resolution_outcome_id: up
+    previous_probability: null
+    current_probability: null
+    delta: null
+revision_drivers:
+  - new_evidence
+triggered_conditions:
+  - 待填充可观察的状态迁移或失效条件
+interpretation: 待说明新证据为何改变或未改变原信念
+temporal_audit:
+  future_evidence_used: false
+  notes: []
+provenance:
+  contract_version: 0.2.0
+  model_versions:
+    - placeholder

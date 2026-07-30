@@ -1,0 +1,38 @@
+{
+  "contract_version": "0.1.0",
+  "run_id": "run-YYYYMMDD-xauusd",
+  "mode": "exploratory",
+  "instrument": "XAUUSD",
+  "as_of": "YYYY-MM-DDTHH:MM:SSZ",
+  "data_cutoff": "YYYY-MM-DDTHH:MM:SSZ",
+  "status": "created",
+  "input": {
+    "evidence_manifest": null,
+    "previous_frame": null,
+    "baseline": null,
+    "daily_complete_bars": 0,
+    "h4_complete_bars": 0,
+    "private_raw_data": false
+  },
+  "gates": {
+    "licence": "unknown",
+    "temporal_integrity": "unknown",
+    "bar_semantics": "unknown",
+    "completeness": "unknown",
+    "snapshot_hash": "unknown",
+    "baseline_frozen": "unknown"
+  },
+  "outputs": {
+    "frame": null,
+    "forecast": null,
+    "delta": null,
+    "explanation": null
+  },
+  "blocking_reasons": [],
+  "provenance": {
+    "prompt_version": "daily-cognition-run:0.1.0",
+    "source_policy_version": "data-source-qualification:0.1.0",
+    "model_versions": ["placeholder"],
+    "created_at": "YYYY-MM-DDTHH:MM:SSZ"
+  }
+}

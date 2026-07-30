@@ -1,0 +1,104 @@
+{
+  "frame_id": "mcf-pilot-a17-v1",
+  "instrument": "XAUUSD",
+  "as_of": "2024-03-14T00:00:00Z",
+  "data_cutoff": "2024-03-14T00:00:00Z",
+  "horizon": "P5D",
+  "state": {
+    "direction": "up",
+    "lifecycle": "expansion",
+    "stability": "stable",
+    "posterior": {
+      "up": 0.7,
+      "down": 0.1,
+      "range": 0.2
+    }
+  },
+  "change_model": {
+    "xing": "20 日正向位移和路径效率较高，日线扩张仍占主导；美元中期走弱形成支持，实际利率短期回升构成反方。",
+    "shi": 0.55,
+    "ji": 0.25,
+    "shi_temporal": "日线扩张为主，4 小时仅作结构确认；未来 3—5 个交易日。",
+    "wei": "expansion",
+    "xin": 0.5
+  },
+  "evidence_refs": [
+    "pilot-a17-price-structure",
+    "pilot-a17-usd"
+  ],
+  "counterevidence_refs": [
+    "pilot-a17-real-yield"
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "up-expansion-persists",
+      "resolution_outcome_id": "up",
+      "description": "日线正向结构保持，回撤未破坏此前突破区，扩张继续。",
+      "probability": 0.6,
+      "triggers": [
+        "未来窗口内日线保持在此前 20 日突破区上方",
+        "正向路径效率未出现快速塌缩"
+      ]
+    },
+    {
+      "scenario_id": "range-absorption",
+      "resolution_outcome_id": "range",
+      "description": "上涨动量被横向波动吸收，状态转为高位区间。",
+      "probability": 0.25,
+      "triggers": [
+        "连续日线重叠且 5 日净位移接近零",
+        "4 小时突破不能保持"
+      ]
+    },
+    {
+      "scenario_id": "down-transition",
+      "resolution_outcome_id": "down",
+      "description": "原上涨结构受损，进入向下或不稳定转换。",
+      "probability": 0.15,
+      "triggers": [
+        "两次日线收盘重新进入此前 20 日突破区",
+        "实际利率继续上升且美元由弱转强"
+      ]
+    }
+  ],
+  "invalidation_conditions": [
+    "两次日线收盘重新进入此前 20 日突破区，则 up + expansion 失效",
+    "关键行情数据的时区或 bar 边界核验失败，则本帧只能保留为 Q0"
+  ],
+  "risk": {
+    "level": "medium",
+    "research_posture": "simulate_only",
+    "warnings": [
+      "Q0 协议试标，不是可发布市场判断",
+      "势、机、信为专家锚定值，尚非模型输出"
+    ]
+  },
+  "abstention": {
+    "state": {
+      "abstain": false,
+      "reason_codes": [],
+      "reason": null
+    },
+    "forecast": {
+      "abstain": false,
+      "reason_codes": [],
+      "reason": null
+    }
+  },
+  "data_gaps": [
+    "XAU/USD 4 小时时区和 bar 时间语义未验证",
+    "未纳入 ETF、CFTC、央行购买和事件新闻的 point-in-time 快照",
+    "FRED 历史 vintage 与当日首次可得时间未冻结"
+  ],
+  "provenance": {
+    "data_snapshot": "evals/pilots/evidence/pilot-a17.json",
+    "feature_version": "pilot-derived-features:0.1.0",
+    "model_versions": [
+      "expert-anchor:0.1.0"
+    ],
+    "prompt_version": null,
+    "contract_version": "2.0.0-q0",
+    "certification_level": "Q0",
+    "resolution_protocol_version": "xauusd-direction-5d:0.2.0"
+  }
+}

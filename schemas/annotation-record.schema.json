@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://story2u.github.io/dao/schemas/annotation-record.schema.json",
+  "title": "Annotation Record",
+  "description": "Independent or adjudicated point-in-time annotation record. Contract version 0.2.0.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "record_id",
+    "sample_id",
+    "phase",
+    "annotator_ref",
+    "created_at",
+    "data_cutoff",
+    "evidence_snapshot_ref",
+    "frame_ref",
+    "input_annotation_refs",
+    "blinding",
+    "temporal_audit",
+    "disagreements",
+    "certification",
+    "provenance"
+  ],
+  "properties": {
+    "record_id": {"type": "string", "minLength": 1},
+    "sample_id": {"type": "string", "minLength": 1},
+    "phase": {"enum": ["independent", "adjudication"]},
+    "annotator_ref": {
+      "description": "Pseudonymous stable identifier; do not store personal identity.",
+      "type": "string",
+      "minLength": 1
+    },
+    "created_at": {"type": "string", "format": "date-time"},
+    "data_cutoff": {"type": "string", "format": "date-time"},
+    "evidence_snapshot_ref": {"type": "string", "minLength": 1},
+    "frame_ref": {"type": "string", "minLength": 1},
+    "input_annotation_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "blinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["future_outcomes_hidden", "target_class_hidden"],
+      "properties": {
+        "future_outcomes_hidden": {"const": true},
+        "target_class_hidden": {"const": true}
+      }
+    },
+    "temporal_audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["checked_at", "violations"],
+      "properties": {
+        "checked_at": {"type": "string", "format": "date-time"},
+        "violations": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "disagreements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["field_path", "category", "resolution"],
+        "properties": {
+          "field_path": {"type": "string", "minLength": 1},
+          "category": {
+            "enum": [
+              "evidence_omission",
+              "definition_ambiguity",
+              "temporal_issue",
+              "probability_gap",
+              "reasonable_plurality",
+              "other"
+            ]
+          },
+          "resolution": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "certification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requested", "awarded", "blocking_reasons"],
+      "properties": {
+        "requested": {"enum": ["Q0", "Q1", "Q2"]},
+        "awarded": {"enum": ["Q0", "Q1", "Q2"]},
+        "blocking_reasons": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "guide_version"],
+      "properties": {
+        "contract_version": {"const": "0.2.0"},
+        "guide_version": {"type": "string", "minLength": 1}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "phase": {"const": "adjudication"}
+        }
+      },
+      "then": {
+        "properties": {
+          "input_annotation_refs": {"minItems": 2}
+        }
+      },
+      "else": {
+        "properties": {
+          "input_annotation_refs": {"maxItems": 0}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "certification": {
+            "properties": {
+              "awarded": {"const": "Q2"}
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "phase": {"const": "adjudication"},
+          "input_annotation_refs": {"minItems": 2}
+        }
+      }
+    }
+  ]
+}

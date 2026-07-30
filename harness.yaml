@@ -1,7 +1,7 @@
 version: 1
 name: dao
 title: AI 黄金趋势认知系统
-phase: research-to-design
+phase: runtime-readiness
 canonical_instructions: AGENTS.md
 
 mission:
@@ -17,14 +17,21 @@ entrypoints:
   agent: AGENTS.md
   state: state/PROJECT_STATE.md
   context_map: docs/harness/CONTEXT_MAP.md
+  daily_run: prompts/daily-cognition-run-v0.1.md
+  source_policy: docs/data/data-source-qualification-matrix-v0.1.md
 
 commands:
   validate: python3 scripts/validate_harness.py
 
 contracts:
+  evidence_manifest: schemas/evidence-manifest.schema.json
   evidence: schemas/evidence-item.schema.json
   forecast: schemas/forecast-contract.schema.json
   cognition_frame: schemas/market-cognition-frame.schema.json
+  cognition_delta: schemas/cognition-delta.schema.json
+  annotation_record: schemas/annotation-record.schema.json
+  resolution_record: schemas/resolution-record.schema.json
+  cognition_run: schemas/cognition-run.schema.json
 
 state_files:
   - state/PROJECT_STATE.md
@@ -38,4 +45,5 @@ quality_gates:
   - explicit-invalidation
   - adversarial-review
   - abstention-support
-
+  - licensed-data-boundary
+  - private-evidence-manifest

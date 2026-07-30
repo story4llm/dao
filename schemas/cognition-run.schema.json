@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://story2u.github.io/dao/schemas/cognition-run.schema.json",
+  "title": "Cognition Run Manifest",
+  "description": "One auditable execution of the DAO daily cognition protocol. Contract version 0.1.0.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "run_id",
+    "mode",
+    "instrument",
+    "as_of",
+    "data_cutoff",
+    "status",
+    "input",
+    "gates",
+    "outputs",
+    "blocking_reasons",
+    "provenance"
+  ],
+  "properties": {
+    "contract_version": {"const": "0.1.0"},
+    "run_id": {"type": "string", "minLength": 1},
+    "mode": {"enum": ["certified", "exploratory"]},
+    "instrument": {"const": "XAUUSD"},
+    "as_of": {"type": "string", "format": "date-time"},
+    "data_cutoff": {"type": "string", "format": "date-time"},
+    "status": {"enum": ["created", "ready", "blocked", "completed", "resolved"]},
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_manifest",
+        "previous_frame",
+        "baseline",
+        "daily_complete_bars",
+        "h4_complete_bars",
+        "private_raw_data"
+      ],
+      "properties": {
+        "evidence_manifest": {"type": ["string", "null"]},
+        "previous_frame": {"type": ["string", "null"]},
+        "baseline": {"type": ["string", "null"]},
+        "daily_complete_bars": {"type": "integer", "minimum": 0},
+        "h4_complete_bars": {"type": "integer", "minimum": 0},
+        "private_raw_data": {"type": "boolean"}
+      }
+    },
+    "gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "licence",
+        "temporal_integrity",
+        "bar_semantics",
+        "completeness",
+        "snapshot_hash",
+        "baseline_frozen"
+      ],
+      "properties": {
+        "licence": {"enum": ["pass", "fail", "unknown"]},
+        "temporal_integrity": {"enum": ["pass", "fail", "unknown"]},
+        "bar_semantics": {"enum": ["pass", "fail", "unknown"]},
+        "completeness": {"enum": ["pass", "fail", "unknown"]},
+        "snapshot_hash": {"enum": ["pass", "fail", "unknown"]},
+        "baseline_frozen": {"enum": ["pass", "fail", "unknown"]}
+      }
+    },
+    "outputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["frame", "forecast", "delta", "explanation"],
+      "properties": {
+        "frame": {"type": ["string", "null"]},
+        "forecast": {"type": ["string", "null"]},
+        "delta": {"type": ["string", "null"]},
+        "explanation": {"type": ["string", "null"]}
+      }
+    },
+    "blocking_reasons": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "missing_evidence_manifest",
+          "missing_daily_history",
+          "missing_h4_history",
+          "unverified_licence",
+          "unverified_temporal_integrity",
+          "unknown_bar_semantics",
+          "missing_snapshot_hash",
+          "missing_baseline",
+          "unmodelled_event",
+          "other"
+        ]
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "prompt_version",
+        "source_policy_version",
+        "model_versions",
+        "created_at"
+      ],
+      "properties": {
+        "prompt_version": {"const": "daily-cognition-run:0.1.0"},
+        "source_policy_version": {"const": "data-source-qualification:0.1.0"},
+        "model_versions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "created_at": {"type": "string", "format": "date-time"}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"mode": {"const": "certified"}}},
+      "then": {"properties": {"input": {"properties": {"private_raw_data": {"const": true}}}}}
+    },
+    {
+      "if": {"properties": {"status": {"const": "blocked"}}},
+      "then": {"properties": {"blocking_reasons": {"minItems": 1}}}
+    },
+    {
+      "if": {"properties": {"status": {"enum": ["ready", "completed", "resolved"]}}},
+      "then": {"properties": {"blocking_reasons": {"maxItems": 0}}}
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 ---
 id: 2026-07-29-bootstrap-harness
-status: in_progress
+status: completed
 owner: codex
 created_at: 2026-07-29
 updated_at: 2026-07-29
@@ -19,7 +19,7 @@ updated_at: 2026-07-29
 - 建立产品、架构、Harness、状态、任务、评估和模板目录。
 - 定义 Evidence Item、Forecast Contract 与 Market Cognition Frame schema。
 - 提供无第三方依赖的仓库校验脚本。
-- 发布到 `story2u/dao` 的独立分支并创建 Draft PR。
+- 形成可上传到 GitHub 的完整 Harness 工程。
 
 ## 非目标
 
@@ -48,14 +48,14 @@ updated_at: 2026-07-29
 - [x] 建立 schema、模板和质量门。
 - [x] 建立状态与任务记忆。
 - [x] 运行 Harness 校验。
-- [ ] 推送分支并创建 Draft PR。
+- [x] 工程已由用户上传到 `story4llm/dao`。
 
 ## 完成定义
 
 - [x] 所有规定入口与契约存在。
 - [x] 内部 Markdown 链接与 JSON schema 基础结构通过校验。
 - [x] 明确不自动交易、point-in-time、证据分层与弃权约束。
-- [ ] GitHub Draft PR 可供人工审阅。
+- [x] GitHub 主分支可供人工审阅。
 
 ## 验证
 
@@ -65,11 +65,10 @@ updated_at: 2026-07-29
 
 ## 结果
 
-本地 Harness 校验已通过，待完成 GitHub 发布。
+Harness 校验已通过，工程已由用户上传到 `story4llm/dao` 主分支。
 
 ## 决策与风险
 
 - 决策：先建设 Harness，再通过后续 ADR 选择 MVP 技术栈。
 - 残余风险：三个 schema 目前只做结构约束；概率和、时间先后关系仍需业务校验器。
 - 后续任务：PRD v0.1、数据源可用性矩阵、人工金标准认知帧。
-

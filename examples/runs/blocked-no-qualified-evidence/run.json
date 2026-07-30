@@ -1,0 +1,46 @@
+{
+  "contract_version": "0.1.0",
+  "run_id": "run-example-blocked-no-qualified-evidence",
+  "mode": "exploratory",
+  "instrument": "XAUUSD",
+  "as_of": "2026-07-30T12:00:00Z",
+  "data_cutoff": "2026-07-30T12:00:00Z",
+  "status": "blocked",
+  "input": {
+    "evidence_manifest": null,
+    "previous_frame": null,
+    "baseline": null,
+    "daily_complete_bars": 0,
+    "h4_complete_bars": 0,
+    "private_raw_data": false
+  },
+  "gates": {
+    "licence": "unknown",
+    "temporal_integrity": "fail",
+    "bar_semantics": "unknown",
+    "completeness": "fail",
+    "snapshot_hash": "fail",
+    "baseline_frozen": "fail"
+  },
+  "outputs": {
+    "frame": null,
+    "forecast": null,
+    "delta": null,
+    "explanation": "examples/runs/blocked-no-qualified-evidence/explanation.md"
+  },
+  "blocking_reasons": [
+    "missing_evidence_manifest",
+    "missing_daily_history",
+    "missing_h4_history",
+    "unverified_temporal_integrity",
+    "unknown_bar_semantics",
+    "missing_snapshot_hash",
+    "missing_baseline"
+  ],
+  "provenance": {
+    "prompt_version": "daily-cognition-run:0.1.0",
+    "source_policy_version": "data-source-qualification:0.1.0",
+    "model_versions": ["protocol-dry-run"],
+    "created_at": "2026-07-30T12:00:00Z"
+  }
+}

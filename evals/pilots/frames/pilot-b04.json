@@ -1,0 +1,104 @@
+{
+  "frame_id": "mcf-pilot-b04-v1",
+  "instrument": "XAUUSD",
+  "as_of": "2024-04-20T00:00:00Z",
+  "data_cutoff": "2024-04-20T00:00:00Z",
+  "horizon": "P5D",
+  "state": {
+    "direction": "up",
+    "lifecycle": "exhaustion",
+    "stability": "fragile",
+    "posterior": {
+      "up": 0.45,
+      "down": 0.2,
+      "range": 0.35
+    }
+  },
+  "change_model": {
+    "xing": "20 日上涨结构仍在，但波动扩大且出现高位拒绝；美元和实际利率同步走强，原趋势脆弱性上升。",
+    "shi": 0.2,
+    "ji": 0.6,
+    "shi_temporal": "日线上涨尚未反转，4 小时出现拒绝；未来 3—5 个交易日优先观察状态迁移。",
+    "wei": "exhaustion",
+    "xin": 0.5
+  },
+  "evidence_refs": [
+    "pilot-b04-price-structure"
+  ],
+  "counterevidence_refs": [
+    "pilot-b04-real-yield",
+    "pilot-b04-usd"
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "up-resumes",
+      "resolution_outcome_id": "up",
+      "description": "高位拒绝被吸收，价格重新建立并保持上涨结构。",
+      "probability": 0.35,
+      "triggers": [
+        "日线重新收在本样本高位拒绝区域上方",
+        "4 小时正向效率重新上升"
+      ]
+    },
+    {
+      "scenario_id": "high-range",
+      "resolution_outcome_id": "range",
+      "description": "原上涨动量衰减，但未形成反向结构，进入高位区间。",
+      "probability": 0.4,
+      "triggers": [
+        "未来窗口内高低点反复重叠",
+        "净位移下降但未破坏最近日线摆动低点"
+      ]
+    },
+    {
+      "scenario_id": "down-transition",
+      "resolution_outcome_id": "down",
+      "description": "脆弱上涨发生结构破坏，进入向下转换。",
+      "probability": 0.25,
+      "triggers": [
+        "日线收盘破坏最近确认的摆动低点",
+        "美元与实际利率的反向压力延续"
+      ]
+    }
+  ],
+  "invalidation_conditions": [
+    "若连续两次日线创新高并保持，且路径效率回升，则 exhaustion 标签失效",
+    "若关键摆动低点被日线确认跌破，应在新帧中迁移为 transition，而不是回写本帧"
+  ],
+  "risk": {
+    "level": "high",
+    "research_posture": "simulate_only",
+    "warnings": [
+      "衰竭不等于反转，也不构成逆势动作",
+      "Q0 数据来源限制尚未解除"
+    ]
+  },
+  "abstention": {
+    "state": {
+      "abstain": false,
+      "reason_codes": [],
+      "reason": null
+    },
+    "forecast": {
+      "abstain": false,
+      "reason_codes": [],
+      "reason": null
+    }
+  },
+  "data_gaps": [
+    "缺少可验证的价格时区和事件新闻快照",
+    "ETF、CFTC 与流动性证据未纳入",
+    "宏观序列未冻结 vintage"
+  ],
+  "provenance": {
+    "data_snapshot": "evals/pilots/evidence/pilot-b04.json",
+    "feature_version": "pilot-derived-features:0.1.0",
+    "model_versions": [
+      "expert-anchor:0.1.0"
+    ],
+    "prompt_version": null,
+    "contract_version": "2.0.0-q0",
+    "certification_level": "Q0",
+    "resolution_protocol_version": "xauusd-direction-5d:0.2.0"
+  }
+}

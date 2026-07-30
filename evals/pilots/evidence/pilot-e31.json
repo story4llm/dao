@@ -1,0 +1,106 @@
+[
+  {
+    "evidence_id": "pilot-e31-price-structure",
+    "layer": "market",
+    "kind": "observation",
+    "claim": "截至 2024-11-06 日线收盘，XAU/USD 为 2658.94；20 日收益仍约 +1.97%，但 5 日收益约 -4.60%。最近 30 个 4 小时 bar 收益约 -4.60%，路径效率比约 0.570；当日 4 小时序列从 2743.32 开始并收于 2658.94。",
+    "dependency_group": "xauusd-public-ohlcv",
+    "source": {
+      "title": "XAU/USD historical OHLCV — daily and 4-hour public dataset copy",
+      "author": "ZombitX64",
+      "locator": "https://huggingface.co/datasets/ZombitX64/xauusd-gold-price-historical-data-2004-2025",
+      "published_at": null,
+      "accessed_at": "2026-07-30T12:00:00Z"
+    },
+    "source_timezone": "unknown",
+    "bar_timestamp_semantics": "unknown",
+    "observed_at": "2024-11-06T20:00:00Z",
+    "available_at": "2024-11-07T00:00:00Z",
+    "recorded_at": "2026-07-30T12:00:00Z",
+    "availability_verified": false,
+    "vintage_id": null,
+    "licence": {
+      "name": "Repository licence not verified",
+      "usage_scope": "unknown",
+      "locator": null,
+      "verified": false
+    },
+    "quality": {
+      "reliability": 0.55,
+      "independence": 1.0,
+      "freshness": 1.0,
+      "notes": [
+        "长期正收益与短期负位移来自同一价格依赖组，但代表不同尺度"
+      ]
+    },
+    "tags": ["xauusd", "transition", "multi-timescale-conflict", "q0"]
+  },
+  {
+    "evidence_id": "pilot-e31-real-yield",
+    "layer": "official",
+    "kind": "observation",
+    "claim": "FRED DFII10 在 2024-11-06 为 2.04%；较 5 个可用观测前上升约 0.09 个百分点，较 20 个可用观测前上升约 0.27 个百分点。",
+    "dependency_group": "us-rates-h15",
+    "source": {
+      "title": "10-Year Treasury Inflation-Indexed Security, Constant Maturity (DFII10)",
+      "author": "Board of Governors of the Federal Reserve System (US)",
+      "locator": "https://fred.stlouisfed.org/series/DFII10",
+      "published_at": null,
+      "accessed_at": "2026-07-30T12:00:00Z"
+    },
+    "source_timezone": "UTC",
+    "bar_timestamp_semantics": "publication_time",
+    "observed_at": "2024-11-06T00:00:00Z",
+    "available_at": "2024-11-07T00:00:00Z",
+    "recorded_at": "2026-07-30T12:00:00Z",
+    "availability_verified": false,
+    "vintage_id": "not-captured",
+    "licence": {
+      "name": "FRED terms not retained with Q0 snapshot",
+      "usage_scope": "unknown",
+      "locator": "https://fred.stlouisfed.org/docs/api/terms_of_use.html",
+      "verified": false
+    },
+    "quality": {
+      "reliability": 0.8,
+      "independence": 0.8,
+      "freshness": 1.0,
+      "notes": []
+    },
+    "tags": ["real-yield", "down-pressure", "q0"]
+  },
+  {
+    "evidence_id": "pilot-e31-usd",
+    "layer": "official",
+    "kind": "observation",
+    "claim": "FRED 广义美元指数 DTWEXBGS 在 2024-11-06 为 125.7035；较 5 个可用观测前上升约 0.8882，较 20 个可用观测前上升约 3.0410。",
+    "dependency_group": "usd-broad-index",
+    "source": {
+      "title": "Nominal Broad U.S. Dollar Index (DTWEXBGS)",
+      "author": "Board of Governors of the Federal Reserve System (US)",
+      "locator": "https://fred.stlouisfed.org/series/DTWEXBGS",
+      "published_at": null,
+      "accessed_at": "2026-07-30T12:00:00Z"
+    },
+    "source_timezone": "UTC",
+    "bar_timestamp_semantics": "publication_time",
+    "observed_at": "2024-11-06T00:00:00Z",
+    "available_at": "2024-11-07T00:00:00Z",
+    "recorded_at": "2026-07-30T12:00:00Z",
+    "availability_verified": false,
+    "vintage_id": "not-captured",
+    "licence": {
+      "name": "FRED terms not retained with Q0 snapshot",
+      "usage_scope": "unknown",
+      "locator": "https://fred.stlouisfed.org/docs/api/terms_of_use.html",
+      "verified": false
+    },
+    "quality": {
+      "reliability": 0.8,
+      "independence": 0.8,
+      "freshness": 1.0,
+      "notes": []
+    },
+    "tags": ["usd", "down-pressure", "q0"]
+  }
+]

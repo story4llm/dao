@@ -1,0 +1,108 @@
+{
+  "frame_id": "mcf-pilot-d09-v1",
+  "instrument": "XAUUSD",
+  "as_of": "2024-09-18T16:00:00Z",
+  "data_cutoff": "2024-09-18T16:00:00Z",
+  "horizon": "P5D",
+  "state": {
+    "direction": "uncertain",
+    "lifecycle": "transition",
+    "stability": "critical",
+    "posterior": {
+      "up": 0.42,
+      "down": 0.23,
+      "range": 0.35
+    }
+  },
+  "change_model": {
+    "xing": "事件前价格和宏观观察略偏上，但关键 4 小时 bar 的时间边界无法证明，且 FOMC 声明将在截止后发布。",
+    "shi": 0.1,
+    "ji": 0.8,
+    "shi_temporal": "事件前状态；未来 3—5 个交易日的首要不确定性来自尚未建模的 FOMC 跳跃。",
+    "wei": "transition",
+    "xin": 0.25
+  },
+  "evidence_refs": [
+    "pilot-d09-price-structure",
+    "pilot-d09-macro",
+    "pilot-d09-event-clock"
+  ],
+  "counterevidence_refs": [
+    "pilot-d09-macro"
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "post-event-up",
+      "resolution_outcome_id": "up",
+      "description": "事件后价格形成并保持向上状态。",
+      "probability": null,
+      "triggers": [
+        "事件结束后首个完整日线收盘确认向上离开事件前结构"
+      ]
+    },
+    {
+      "scenario_id": "post-event-range",
+      "resolution_outcome_id": "range",
+      "description": "事件冲击未形成保持方向，价格回到事件前平衡区。",
+      "probability": null,
+      "triggers": [
+        "事件后首个完整日线收盘回到事件前结构内部"
+      ]
+    },
+    {
+      "scenario_id": "post-event-down",
+      "resolution_outcome_id": "down",
+      "description": "事件后价格形成并保持向下状态。",
+      "probability": null,
+      "triggers": [
+        "事件结束后首个完整日线收盘确认向下离开事件前结构"
+      ]
+    }
+  ],
+  "invalidation_conditions": [
+    "FOMC 声明与首个事件后完整日线收盘可得后，必须生成新帧",
+    "价格数据的时区和 bar 边界被权威元数据确认后，重新执行时间完整性检查"
+  ],
+  "risk": {
+    "level": "blocked",
+    "research_posture": "do_not_publish",
+    "warnings": [
+      "forecast_abstain：没有校准的事件条件模型",
+      "temporal_abstain：关键 4 小时 bar 的截止边界无法证明",
+      "事件样本只描述条件场景，不分配占位概率，也不得评分"
+    ]
+  },
+  "abstention": {
+    "state": {
+      "abstain": false,
+      "reason_codes": [],
+      "reason": null
+    },
+    "forecast": {
+      "abstain": true,
+      "reason_codes": [
+        "unmodelled_event",
+        "temporal_integrity",
+        "uncalibrated"
+      ],
+      "reason": "截止后临近 FOMC 离散事件，且公开 4 小时数据的时间语义未经验证；系统可以描述当前证据，但不应给出伪精确的 3—5 日方向预测。"
+    }
+  },
+  "data_gaps": [
+    "缺少校准的 FOMC 条件模型",
+    "缺少可证明的 4 小时时区和 bar 结束时间",
+    "FRED vintage 与事件前市场预期分布未冻结"
+  ],
+  "provenance": {
+    "data_snapshot": "evals/pilots/evidence/pilot-d09.json",
+    "feature_version": "pilot-derived-features:0.1.0",
+    "model_versions": [
+      "expert-anchor:0.1.0",
+      "abstention-gate:0.1.0"
+    ],
+    "prompt_version": null,
+    "contract_version": "2.0.0-q0",
+    "certification_level": "Q0",
+    "resolution_protocol_version": "xauusd-direction-5d:0.2.0"
+  }
+}

@@ -1,8 +1,8 @@
-frame_id: frame-YYYYMMDD-xauusd-p3d
+frame_id: frame-YYYYMMDD-xauusd-p5d
 instrument: XAUUSD
 as_of: "YYYY-MM-DDTHH:MM:SSZ"
 data_cutoff: "YYYY-MM-DDTHH:MM:SSZ"
-horizon: P3D
+horizon: P5D
 state:
   direction: uncertain
   lifecycle: transition
@@ -15,32 +15,49 @@ change_model:
   xing: 待结构化市场观察
   shi: 0.00
   ji: 0.50
-  shi_temporal: 日线判断，未来三日
+  shi_temporal: 日线判断，未来五个完整交易日
   wei: transition
   xin: 0.40
 evidence_refs:
   - evidence:placeholder
 counterevidence_refs: []
 scenarios:
-  - scenario_id: base
-    description: 基准情景
-    probability: 0.50
-    triggers: []
-  - scenario_id: alternative
-    description: 反方情景
-    probability: 0.50
-    triggers: []
+  - scenario_id: up
+    resolution_outcome_id: up
+    description: 五日 ATR 归一化净位移高于上边界
+    probability: null
+    triggers:
+      - 依据预注册 Forecast Contract 解析
+  - scenario_id: range
+    resolution_outcome_id: range
+    description: 五日 ATR 归一化净位移位于中性带
+    probability: null
+    triggers:
+      - 依据预注册 Forecast Contract 解析
+  - scenario_id: down
+    resolution_outcome_id: down
+    description: 五日 ATR 归一化净位移低于下边界
+    probability: null
+    triggers:
+      - 依据预注册 Forecast Contract 解析
 invalidation_conditions:
   - 关键输入缺失或新证据使当前状态后验失效
 risk:
   level: high
-  allowed_actions:
-    - observe
-    - research
+  research_posture: do_not_publish
   warnings:
     - 示例模板，不可作为市场判断
-abstain: true
-abstain_reason: 尚未填充真实数据与模型结果
+abstention:
+  state:
+    abstain: true
+    reason_codes:
+      - insufficient_data
+    reason: 尚未填充真实数据与模型结果
+  forecast:
+    abstain: true
+    reason_codes:
+      - uncalibrated
+    reason: 尚未建立可评分预测
 data_gaps: []
 provenance:
   data_snapshot: placeholder
@@ -48,5 +65,6 @@ provenance:
   model_versions:
     - placeholder
   prompt_version: null
-  contract_version: 1.0.0
-
+  contract_version: 2.0.0
+  certification_level: Q0
+  resolution_protocol_version: xauusd-direction-5d:0.2.0

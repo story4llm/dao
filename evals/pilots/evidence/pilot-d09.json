@@ -1,0 +1,111 @@
+[
+  {
+    "evidence_id": "pilot-d09-price-structure",
+    "layer": "market",
+    "kind": "observation",
+    "claim": "在 2024-09-18 16:00Z 的试验截止时点，最近完整日线为 2024-09-17，收于 2569.45；5 日收益约 +2.10%，20 日收益约 +2.21%，20 日路径效率比约 0.195。公开 4 小时序列在标记为 12:00 的 bar 收于 2576.14。",
+    "dependency_group": "xauusd-public-ohlcv",
+    "source": {
+      "title": "XAU/USD historical OHLCV — daily and 4-hour public dataset copy",
+      "author": "ZombitX64",
+      "locator": "https://huggingface.co/datasets/ZombitX64/xauusd-gold-price-historical-data-2004-2025",
+      "published_at": null,
+      "accessed_at": "2026-07-30T12:00:00Z"
+    },
+    "source_timezone": "unknown",
+    "bar_timestamp_semantics": "unknown",
+    "observed_at": "2024-09-18T12:00:00Z",
+    "available_at": "2024-09-18T16:00:00Z",
+    "recorded_at": "2026-07-30T12:00:00Z",
+    "availability_verified": false,
+    "vintage_id": null,
+    "licence": {
+      "name": "Repository licence not verified",
+      "usage_scope": "unknown",
+      "locator": null,
+      "verified": false
+    },
+    "quality": {
+      "reliability": 0.45,
+      "independence": 1.0,
+      "freshness": 1.0,
+      "notes": [
+        "由于无法证明 12:00 是 bar 开始还是结束，本证据触发时间边界硬门"
+      ]
+    },
+    "tags": ["xauusd", "pre-event", "temporal-ambiguity", "q0"]
+  },
+  {
+    "evidence_id": "pilot-d09-macro",
+    "layer": "official",
+    "kind": "observation",
+    "claim": "截止 2024-09-17 的最近可用观测中，DFII10 为 1.53%，较 20 个可用观测前下降约 0.26 个百分点；DTWEXBGS 为 121.6031，较 5 个可用观测前下降约 1.4040。",
+    "dependency_group": "us-macro-market",
+    "source": {
+      "title": "FRED DFII10 and DTWEXBGS historical observations",
+      "author": "Board of Governors of the Federal Reserve System (US)",
+      "locator": "https://fred.stlouisfed.org/",
+      "published_at": null,
+      "accessed_at": "2026-07-30T12:00:00Z"
+    },
+    "source_timezone": "UTC",
+    "bar_timestamp_semantics": "publication_time",
+    "observed_at": "2024-09-17T00:00:00Z",
+    "available_at": "2024-09-18T00:00:00Z",
+    "recorded_at": "2026-07-30T12:00:00Z",
+    "availability_verified": false,
+    "vintage_id": "not-captured",
+    "licence": {
+      "name": "FRED terms not retained with Q0 snapshot",
+      "usage_scope": "unknown",
+      "locator": "https://fred.stlouisfed.org/docs/api/terms_of_use.html",
+      "verified": false
+    },
+    "quality": {
+      "reliability": 0.75,
+      "independence": 0.7,
+      "freshness": 0.9,
+      "notes": [
+        "两个序列在正式标注中应拆分依赖组；本例仅作协议试验"
+      ]
+    },
+    "tags": ["real-yield", "usd", "pre-event", "q0"]
+  },
+  {
+    "evidence_id": "pilot-d09-event-clock",
+    "layer": "official",
+    "kind": "observation",
+    "claim": "Federal Reserve 官方日历列出 2024-09-17 至 18 日 FOMC 会议；常规政策声明在第二日美东时间 14:00 发布，对应本样本截止时点后约两小时。",
+    "dependency_group": "fomc-official-calendar",
+    "source": {
+      "title": "Federal Reserve FOMC meeting calendars and information",
+      "author": "Board of Governors of the Federal Reserve System",
+      "locator": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+      "published_at": null,
+      "accessed_at": "2026-07-30T12:00:00Z"
+    },
+    "source_timezone": "America/New_York",
+    "bar_timestamp_semantics": "event_time",
+    "observed_at": "2024-09-18T00:00:00Z",
+    "available_at": "2024-09-17T00:00:00Z",
+    "recorded_at": "2026-07-30T12:00:00Z",
+    "availability_verified": false,
+    "vintage_id": "not-captured",
+    "licence": {
+      "name": "Federal Reserve public information terms not retained",
+      "usage_scope": "unknown",
+      "locator": null,
+      "verified": false
+    },
+    "quality": {
+      "reliability": 0.95,
+      "independence": 1.0,
+      "freshness": 1.0,
+      "notes": [
+        "正式 Q2 前需保存截止时点前的归档页面或公告版本",
+        "未将声明内容或决议结果放入盲标证据"
+      ]
+    },
+    "tags": ["fomc", "event-clock", "abstention", "q0"]
+  }
+]

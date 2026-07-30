@@ -1,0 +1,69 @@
+{
+  "contract_version": "0.1.0",
+  "manifest_id": "evidence-YYYYMMDD-xauusd",
+  "instrument": "XAUUSD",
+  "provider": {
+    "provider_id": "oanda-v20",
+    "instrument_id": "XAU_USD",
+    "environment": "practice"
+  },
+  "data_cutoff": "YYYY-MM-DDTHH:MM:SSZ",
+  "licence": {
+    "name": "OANDA regional API licence agreement",
+    "version_or_effective_date": "YYYY-MM-DD",
+    "locator": "https://regional-provider-license.example",
+    "usage_scope": "internal_evaluation",
+    "verified_at": "YYYY-MM-DDTHH:MM:SSZ"
+  },
+  "snapshots": [
+    {
+      "snapshot_id": "snapshot-price-daily",
+      "role": "price_daily",
+      "private_location_ref": "private://xauusd-daily-response.json",
+      "request_locator_redacted": "/v3/instruments/XAU_USD/candles?price=M&granularity=D&count=60&dailyAlignment=17&alignmentTimezone=America%2FNew_York",
+      "request_id": null,
+      "captured_at": "YYYY-MM-DDTHH:MM:SSZ",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "bytes": 1,
+      "record_count": 60,
+      "first_observed_at": "YYYY-MM-DDTHH:MM:SSZ",
+      "last_observed_at": "YYYY-MM-DDTHH:MM:SSZ",
+      "source_timezone": "UTC; daily alignment America/New_York 17:00",
+      "timestamp_semantics": "open_time",
+      "complete_only": true
+    },
+    {
+      "snapshot_id": "snapshot-price-h4",
+      "role": "price_h4",
+      "private_location_ref": "private://xauusd-h4-response.json",
+      "request_locator_redacted": "/v3/instruments/XAU_USD/candles?price=M&granularity=H4&count=30",
+      "request_id": null,
+      "captured_at": "YYYY-MM-DDTHH:MM:SSZ",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "bytes": 1,
+      "record_count": 30,
+      "first_observed_at": "YYYY-MM-DDTHH:MM:SSZ",
+      "last_observed_at": "YYYY-MM-DDTHH:MM:SSZ",
+      "source_timezone": "UTC",
+      "timestamp_semantics": "open_time",
+      "complete_only": true
+    }
+  ],
+  "coverage": {
+    "daily_complete_bars": 60,
+    "h4_complete_bars": 30,
+    "last_daily_complete_at": "YYYY-MM-DDTHH:MM:SSZ",
+    "last_h4_complete_at": "YYYY-MM-DDTHH:MM:SSZ"
+  },
+  "quality": {
+    "missing_intervals": [],
+    "stale": false,
+    "future_records": false,
+    "notes": []
+  },
+  "provenance": {
+    "created_at": "YYYY-MM-DDTHH:MM:SSZ",
+    "created_by": "replace-with-tool-and-version",
+    "source_policy_version": "data-source-qualification:0.1.0"
+  }
+}

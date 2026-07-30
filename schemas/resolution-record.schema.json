@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://story2u.github.io/dao/schemas/resolution-record.schema.json",
+  "title": "Resolution Record",
+  "description": "Append-only future outcome and scoring record. Contract version 0.2.0.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "resolution_id",
+    "forecast_id",
+    "frame_id",
+    "resolved_at",
+    "protocol_version",
+    "source_snapshot_ref",
+    "status",
+    "observed",
+    "scoring",
+    "audit",
+    "provenance"
+  ],
+  "properties": {
+    "resolution_id": {"type": "string", "minLength": 1},
+    "forecast_id": {"type": "string", "minLength": 1},
+    "frame_id": {"type": "string", "minLength": 1},
+    "resolved_at": {"type": "string", "format": "date-time"},
+    "protocol_version": {"const": "xauusd-direction-5d:0.2.0"},
+    "source_snapshot_ref": {"type": "string", "minLength": 1},
+    "status": {"enum": ["resolved", "unresolvable", "not_scored"]},
+    "observed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference_close",
+        "diagnostic_close_3",
+        "resolution_close_5",
+        "atr20_at_cutoff",
+        "normalized_change_3",
+        "normalized_change_5",
+        "outcome_id"
+      ],
+      "properties": {
+        "reference_close": {"type": ["number", "null"]},
+        "diagnostic_close_3": {"type": ["number", "null"]},
+        "resolution_close_5": {"type": ["number", "null"]},
+        "atr20_at_cutoff": {"type": ["number", "null"], "exclusiveMinimum": 0},
+        "normalized_change_3": {"type": ["number", "null"]},
+        "normalized_change_5": {"type": ["number", "null"]},
+        "outcome_id": {"enum": ["up", "down", "range", null]}
+      }
+    },
+    "scoring": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "eligible",
+        "exclusion_reasons",
+        "brier_multiclass",
+        "log_loss",
+        "baseline_brier",
+        "brier_skill_score"
+      ],
+      "properties": {
+        "eligible": {"type": "boolean"},
+        "exclusion_reasons": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "brier_multiclass": {"type": ["number", "null"], "minimum": 0},
+        "log_loss": {"type": ["number", "null"], "minimum": 0},
+        "baseline_brier": {"type": ["number", "null"], "minimum": 0},
+        "brier_skill_score": {"type": ["number", "null"]}
+      }
+    },
+    "audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "append_only",
+        "forecast_frozen_before_outcomes",
+        "resolver_ref",
+        "notes"
+      ],
+      "properties": {
+        "append_only": {"const": true},
+        "forecast_frozen_before_outcomes": {"const": true},
+        "resolver_ref": {"type": "string", "minLength": 1},
+        "notes": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "resolver_version"],
+      "properties": {
+        "contract_version": {"const": "0.2.0"},
+        "resolver_version": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

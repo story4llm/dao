@@ -1,0 +1,31 @@
+resolution_id: resolution-forecast-placeholder
+forecast_id: forecast-placeholder
+frame_id: frame-placeholder
+resolved_at: "YYYY-MM-DDTHH:MM:SSZ"
+protocol_version: xauusd-direction-5d:0.2.0
+source_snapshot_ref: future-snapshot-placeholder
+status: not_scored
+observed:
+  reference_close: null
+  diagnostic_close_3: null
+  resolution_close_5: null
+  atr20_at_cutoff: null
+  normalized_change_3: null
+  normalized_change_5: null
+  outcome_id: null
+scoring:
+  eligible: false
+  exclusion_reasons:
+    - 模板或预测已弃权
+  brier_multiclass: null
+  log_loss: null
+  baseline_brier: null
+  brier_skill_score: null
+audit:
+  append_only: true
+  forecast_frozen_before_outcomes: true
+  resolver_ref: resolver-placeholder
+  notes: []
+provenance:
+  contract_version: 0.2.0
+  resolver_version: placeholder
