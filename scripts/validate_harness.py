@@ -9,6 +9,9 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema.exceptions import SchemaError
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -35,6 +38,7 @@ REQUIRED_PATHS = [
     "docs/harness/DAILY_RUNBOOK.md",
     "docs/decisions/ADR-0003-separate-state-forecast-and-revision-evaluation.md",
     "docs/decisions/ADR-0004-github-harness-private-evidence-runtime.md",
+    "docs/decisions/ADR-0005-machine-enforced-certified-runtime.md",
     "state/PROJECT_STATE.md",
     "state/DECISION_LOG.md",
     "state/OPEN_QUESTIONS.md",
@@ -48,6 +52,8 @@ REQUIRED_PATHS = [
     "schemas/annotation-record.schema.json",
     "schemas/resolution-record.schema.json",
     "schemas/cognition-run.schema.json",
+    "schemas/feature-snapshot.schema.json",
+    "schemas/baseline-snapshot.schema.json",
     "templates/research-note.md",
     "templates/forecast-record.yaml",
     "templates/market-cognition-frame.yaml",
@@ -55,11 +61,25 @@ REQUIRED_PATHS = [
     "templates/annotation-record.yaml",
     "templates/resolution-record.yaml",
     "templates/cognition-run.json",
-    "templates/evidence-manifest.json",
+    "templates/private-bundle-config.example.json",
     "prompts/daily-cognition-run-v0.1.md",
+    "prompts/daily-cognition-run-v0.2.md",
     "examples/runs/blocked-no-qualified-evidence/run.json",
     "examples/runs/blocked-no-qualified-evidence/explanation.md",
     "tasks/2026-07-30-first-runnable-cognition-loop.md",
+    "tasks/2026-07-30-certified-runtime-hardening-v0.2.md",
+    "dao_runtime/__init__.py",
+    "dao_runtime/contracts.py",
+    "dao_runtime/features.py",
+    "dao_runtime/bundle.py",
+    "dao_runtime/oanda.py",
+    "dao_runtime/cli.py",
+    "scripts/dao_runtime.py",
+    "tests/test_features.py",
+    "tests/test_bundle.py",
+    "tests/test_oanda.py",
+    ".github/workflows/validate.yml",
+    "pyproject.toml",
     ".gitignore",
 ]
 
@@ -144,6 +164,35 @@ SCHEMA_REQUIREMENTS = {
         "blocking_reasons",
         "provenance",
     },
+    "feature-snapshot.schema.json": {
+        "contract_version",
+        "feature_snapshot_id",
+        "instrument",
+        "data_cutoff",
+        "source_manifest_id",
+        "reference_session",
+        "reference_close",
+        "atr20",
+        "bar_config",
+        "trading_calendar",
+        "feature_payload_sha256",
+        "provenance",
+    },
+    "baseline-snapshot.schema.json": {
+        "contract_version",
+        "baseline_id",
+        "instrument",
+        "protocol_id",
+        "data_cutoff",
+        "method",
+        "training",
+        "probabilities",
+        "normalization",
+        "source_daily_snapshot_sha256",
+        "feature_config_sha256",
+        "baseline_payload_sha256",
+        "provenance",
+    },
 }
 
 LINK_PATTERN = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
@@ -169,6 +218,12 @@ def validate_schemas(errors: list[str]) -> None:
 
         if payload.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
             errors.append(f"{path.relative_to(ROOT)} must use JSON Schema 2020-12")
+        try:
+            Draft202012Validator.check_schema(payload)
+        except SchemaError as exc:
+            errors.append(
+                f"invalid JSON Schema {path.relative_to(ROOT)}: {exc.message}"
+            )
 
         expected = SCHEMA_REQUIREMENTS.get(path.name, set())
         required = set(payload.get("required", []))
@@ -178,6 +233,19 @@ def validate_schemas(errors: list[str]) -> None:
                 f"{path.relative_to(ROOT)} missing required contract fields: "
                 + ", ".join(sorted(missing))
             )
+
+
+def validate_instance(
+    payload: object,
+    schema_name: str,
+    label: str,
+    errors: list[str],
+) -> None:
+    schema = json.loads((ROOT / "schemas" / schema_name).read_text(encoding="utf-8"))
+    validator = Draft202012Validator(schema, format_checker=FormatChecker())
+    for error in sorted(validator.iter_errors(payload), key=lambda item: list(item.path)):
+        location = ".".join(str(part) for part in error.absolute_path) or "<root>"
+        errors.append(f"{label}:{location}: {error.message}")
 
 
 def validate_internal_links(errors: list[str]) -> None:
@@ -246,14 +314,15 @@ def validate_guardrails(errors: list[str]) -> None:
     if "allowed_actions" in frame_template:
         errors.append("market cognition frame template still uses allowed_actions")
 
-    daily_prompt = (ROOT / "prompts/daily-cognition-run-v0.1.md").read_text(
+    daily_prompt = (ROOT / "prompts/daily-cognition-run-v0.2.md").read_text(
         encoding="utf-8"
     )
     for phrase in (
         "不要自行从公开网页补行情",
-        "必须设置 `forecast.abstain=true`",
-        "不要用 0.34/0.33/0.33 伪装不确定",
-        "原始响应 SHA-256",
+        "不得改用 TradingView",
+        "三类概率为 `null`",
+        "不得重新计算、改写或用文字估计",
+        "validate-bundle",
     ):
         if phrase not in daily_prompt:
             errors.append(f"daily cognition prompt missing guardrail: {phrase}")
@@ -315,6 +384,12 @@ def validate_pilot_evals(errors: list[str]) -> None:
             continue
 
         for item in items:
+            validate_instance(
+                item,
+                "evidence-item.schema.json",
+                f"{path.relative_to(ROOT)}",
+                errors,
+            )
             evidence_id = item.get("evidence_id")
             if not evidence_id:
                 errors.append(f"{path.relative_to(ROOT)} has evidence without evidence_id")
@@ -369,6 +444,12 @@ def validate_pilot_evals(errors: list[str]) -> None:
         except (OSError, json.JSONDecodeError) as exc:
             errors.append(f"invalid pilot frame JSON {path.relative_to(ROOT)}: {exc}")
             continue
+        validate_instance(
+            frame,
+            "market-cognition-frame.schema.json",
+            str(path.relative_to(ROOT)),
+            errors,
+        )
 
         try:
             cutoff = parse_datetime(frame["data_cutoff"])
@@ -540,7 +621,14 @@ def validate_blocked_run_example(errors: list[str]) -> None:
         errors.append(f"invalid blocked run example: {exc}")
         return
 
-    if run.get("contract_version") != "0.1.0":
+    validate_instance(
+        run,
+        "cognition-run.schema.json",
+        str(path.relative_to(ROOT)),
+        errors,
+    )
+
+    if run.get("contract_version") != "0.2.0":
         errors.append("blocked run example has wrong contract version")
     if run.get("mode") != "exploratory":
         errors.append("blocked run without qualified evidence must be exploratory")
@@ -569,11 +657,16 @@ def validate_blocked_run_example(errors: list[str]) -> None:
 
     expected_reasons = {
         "missing_evidence_manifest",
+        "instrument_not_available",
         "missing_daily_history",
         "missing_h4_history",
+        "missing_macro_rates",
+        "missing_macro_usd",
+        "missing_event_clock",
         "unverified_temporal_integrity",
         "unknown_bar_semantics",
         "missing_snapshot_hash",
+        "missing_feature_snapshot",
         "missing_baseline",
     }
     reasons = set(run.get("blocking_reasons", []))
@@ -585,7 +678,10 @@ def validate_blocked_run_example(errors: list[str]) -> None:
         )
 
     outputs = run.get("outputs", {})
-    if outputs.get("frame") is not None or outputs.get("forecast") is not None:
+    if any(
+        outputs.get(key) is not None
+        for key in ("evidence_items", "frame", "forecast", "delta", "resolution")
+    ):
         errors.append("blocked run must not emit frame or forecast files")
 
     gates = run.get("gates", {})
@@ -593,10 +689,12 @@ def validate_blocked_run_example(errors: list[str]) -> None:
         errors.append("blocked run cannot pass every data gate")
 
     provenance = run.get("provenance", {})
-    if provenance.get("prompt_version") != "daily-cognition-run:0.1.0":
+    if provenance.get("prompt_version") != "daily-cognition-run:0.2.0":
         errors.append("blocked run has wrong prompt version")
     if provenance.get("source_policy_version") != "data-source-qualification:0.1.0":
         errors.append("blocked run has wrong source policy version")
+    if provenance.get("runtime_version") != "dao-certified-runtime:0.2.0":
+        errors.append("blocked run has wrong runtime version")
 
 
 def main() -> int:

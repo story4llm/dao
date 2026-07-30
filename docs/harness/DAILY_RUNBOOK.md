@@ -2,6 +2,40 @@
 
 本手册定义用户如何让 AI 读取 GitHub Harness，并执行一次 XAU/USD 趋势认知。它不要求建设前端，也不连接交易账户下单。
 
+## 0. 运行边界与本地准备
+
+OANDA token、account ID、原始响应和完整 candle 序列只能进入账户持有人的私有运行环境。不要把它们粘贴到聊天、命令参数、GitHub Issue 或公开仓库。
+
+安装：
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -e .
+```
+
+复制 `templates/private-bundle-config.example.json` 到仓库外，填写账户实际接受的区域协议，以及本次已经冻结的 Treasury、Federal Reserve H.10 和未来五个交易日事件时钟文件。示例中的 `REPLACE` 或 `example.com` 会被程序拒绝。
+
+在本地交互式输入凭据，避免把值留在 shell history：
+
+```bash
+read -rsp "OANDA token: " OANDA_API_TOKEN
+export OANDA_API_TOKEN
+read -rp "OANDA account ID: " OANDA_ACCOUNT_ID
+export OANDA_ACCOUNT_ID
+```
+
+生成私有输入与公开 ready run：
+
+```bash
+python -m dao_runtime.cli prepare-oanda \
+  --config /private/path/private-bundle-config.json \
+  --private-dir /private/path/runtime/private/run-YYYYMMDD-xauusd \
+  --public-dir runs/YYYY/MM/DD/run-YYYYMMDD-xauusd
+```
+
+程序会先通过账户 instruments endpoint 确认实际存在 `XAU_USD`，再采集 midpoint D/H4，私有保存 provider 原始响应和 complete-only 规范化响应，冻结 C0、ATR(20)、bar 边界、session sequence hash 与历史频率基线。任何凭据都不会写入产物。
+
 ## 1. 一次运行的输入
 
 AI 必须同时获得两类输入：
@@ -12,10 +46,10 @@ AI 必须同时获得两类输入：
 
 - `AGENTS.md`
 - `state/PROJECT_STATE.md`
-- `prompts/daily-cognition-run-v0.1.md`
+- `prompts/daily-cognition-run-v0.2.md`
 - `docs/data/data-source-qualification-matrix-v0.1.md`
 - `evals/evaluation-contract-v0.2.md`
-- 六类输出 schema
+- Evidence Manifest、Feature、Baseline、Evidence、MCF、Forecast、Delta、Resolution schema
 
 ### 私有证据包
 
@@ -23,29 +57,32 @@ AI 必须同时获得两类输入：
 
 - XAU/USD 完整日线至少 60 个交易日。
 - XAU/USD 完整 4 小时 bar 至少 30 条。
+- 账户 instruments endpoint 返回 `XAU_USD` 的私有快照。
 - 去密钥请求清单、抓取时间、响应哈希和 provider。
 - 截止时点前最新可得的实际利率/名义利率与美元环境证据。
 - 未来 5 个交易日已知重大事件时钟。
-- 与结果协议一致的最后完整日线收盘和冻结 ATR(20) 输入。
-- 预先冻结的朴素基线概率；缺失时预测必须弃权。
+- 由程序生成的 Feature Snapshot，冻结 C0、ATR(20)、price field、NY17 日线边界与 session sequence hash。
+- 由程序生成的 Baseline Snapshot，至少包含 252 个已解析历史 origin；缺失时预测必须弃权。
 
-私有证据可以作为当前会话附件提供，也可以由有权限的本地 Agent 从 `runtime/private/` 读取。不得把 token 发在聊天中。
+OANDA 私有证据不得作为不符合区域数据许可的云端会话附件。它只能由有权限的本地 Agent 从私有目录读取；云端 AI 仅可读取许可允许的派生记录。不得把 token 发在聊天中。
 
-清单结构以 `schemas/evidence-manifest.schema.json` 为准，可从 `templates/evidence-manifest.json` 创建。模板中的 URL、日期、字节数、哈希和 request ID 都必须替换为本次真实值。
+清单结构以 `schemas/evidence-manifest.schema.json` 为准，必须由 `prepare-oanda` 根据真实文件生成，不再允许手工复制 manifest 模板。
 
 ## 2. 标准运行顺序
 
 1. **Load**：读取 Harness 和上一份有效认知帧。
 2. **Freeze**：确认 `as_of`、`data_cutoff` 和最后完整 bar。
 3. **Gate**：检查许可、时区、完整性、陈旧度、首次可得时间和哈希。
-4. **Observe**：只写来源直接支持的观察，不做趋势叙事。
-5. **Compete**：至少建立两个能被证据区分的假设。
-6. **Cognize**：形成方向、生命周期、稳定性和“形、势、机、时、位、信”。
-7. **Forecast**：从冻结基线出发生成三类情景概率；无基线或未校准时弃权。
-8. **Challenge**：检查反方证据、重复来源、事件风险和分布外状态。
-9. **Delta**：与上一帧比较；首帧明确记录无前序帧。
-10. **Emit**：输出 run manifest、Evidence、MCF、Forecast、Delta 与简短忠实解释。
-11. **Resolve**：第 3 个完整交易日只诊断；第 5 个完整交易日追加正式 Resolution Record。
+4. **Verify**：运行 `validate-bundle --private-root ...`；失败时立即阻断。
+5. **Observe**：只写来源直接支持的观察，不做趋势叙事。
+6. **Compete**：至少建立两个能被证据区分的假设。
+7. **Cognize**：形成方向、生命周期、稳定性和“形、势、机、时、位、信”。
+8. **Forecast**：首轮概率逐项等于冻结基线；无基线时弃权。
+9. **Challenge**：检查反方证据、重复来源、事件风险和分布外状态。
+10. **Delta**：与上一帧比较；首帧明确记录无前序帧。
+11. **Emit**：输出 run manifest、Evidence、MCF、Forecast、Delta 与简短忠实解释。
+12. **Revalidate**：completed run 再次通过标准 Schema 与跨文件硬门。
+13. **Resolve**：第 3 个完整交易日只诊断；第 5 个完整交易日追加正式 Resolution Record并重算评分。
 
 ## 3. Certified 与 Exploratory
 
@@ -58,21 +95,22 @@ AI 必须同时获得两类输入：
 
 ## 4. 可直接使用的调用 Prompt
 
-将私有证据包作为附件添加后，对已连接 GitHub 的 AI 发送：
+在能够合法读取私有目录的本地 AI 环境发送：
 
 ```text
-@GitHub 读取 story4llm/dao 的 AGENTS.md、
-prompts/daily-cognition-run-v0.1.md 和其中列出的最小上下文。
+读取 story4llm/dao 的 AGENTS.md、
+prompts/daily-cognition-run-v0.2.md 和其中列出的最小上下文。
 
-以我本次附加的私有证据包执行一次 XAU/USD 每日趋势认知：
+以本地 ready run 与对应 private root 执行一次 XAU/USD 每日趋势认知：
 - mode: certified
 - horizon: 截止后第 5 个完整交易日
 - 日线为主，4 小时辅助
 
-先运行数据资格门，再生成 Market Cognition Frame、Forecast Contract；
+先执行 validate-bundle，再生成 Market Cognition Frame、Forecast Contract；
 若存在上一帧则生成 Cognition Delta。严格使用 data_cutoff 前证据，
-不要自行从公开网页补行情。任何硬门失败时改为 blocked/exploratory，
-明确缺失项并预测弃权，不要填占位概率。
+不要自行从公开网页或 TradingView 补行情。首轮概率必须逐项等于
+冻结 Baseline Snapshot。任何硬门失败时改为 blocked/exploratory，
+明确缺失项并预测弃权，不要手工修改程序冻结值。
 ```
 
 没有私有证据包时，可把 `mode` 改为 `exploratory`。此时系统用于研究问题，不形成可评分预测。
@@ -85,6 +123,9 @@ prompts/daily-cognition-run-v0.1.md 和其中列出的最小上下文。
 runs/YYYY/MM/DD/<run_id>/
 ├── run.json
 ├── evidence-manifest.json
+├── feature-snapshot.json
+├── baseline-snapshot.json
+├── evidence-items.json
 ├── market-cognition-frame.json
 ├── forecast-contract.json
 ├── cognition-delta.json
@@ -96,6 +137,7 @@ runs/YYYY/MM/DD/<run_id>/
 ## 6. 发布与回写
 
 - AI 先在会话或本地工作区生成产物并校验。
+- certified 的最终机器校验必须在持有私有文件的本地环境执行。
 - 只有许可允许的派生记录才能回写 GitHub。
 - 原始 MCF 和 Forecast 冻结后不可事后覆盖；新证据产生新帧和 Delta。
 - 到期只追加 Resolution Record。

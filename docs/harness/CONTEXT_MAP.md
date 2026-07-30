@@ -22,7 +22,7 @@
 | 数据接入 | 研究报告数据架构、证据 schema、质量门 | 数据字典、来源许可、时滞说明 |
 | 用户解释与报告 | 市场认知帧、产品愿景、质量门 | 模板、解释规则、评估样本 |
 | Harness 本身 | `docs/harness/*`、`harness.yaml` | 主规范、状态、验证脚本 |
-| 每日趋势认知 | `prompts/daily-cognition-run-v0.1.md`、数据源资格矩阵、评估契约、六类输出 schema、上一帧 | run manifest、Evidence、MCF、Forecast、Delta、解释 |
+| 每日趋势认知 | `prompts/daily-cognition-run-v0.2.md`、数据源资格矩阵、评估契约、八类输出 schema、上一帧 | run manifest、Evidence Manifest、Feature、Baseline、Evidence、MCF、Forecast、Delta、解释 |
 
 ## 深入研究的加载原则
 

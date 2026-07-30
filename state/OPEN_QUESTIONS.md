@@ -36,15 +36,15 @@
 
 - 用户实际 OANDA/等价账户所在地区是否提供 `XAU_USD`，接受的协议版本是什么？
 - 首个 evidence bundle 的私有存储位置和保留周期是什么？
-- OANDA mid、bid/ask 中哪一个价格字段作为首期冻结字段？
-- XAU/USD 周末、假日与第 5 个完整交易日如何映射到 provider 日线日历？
+- 首期冻结字段已定为 OANDA midpoint `mid.c`，日线边界固定为 `America/New_York` 17:00。
+- 第 5 个完整交易日按本次冻结的 OANDA complete daily session sequence 计数；仍需用首个真实 run 验证假日异常处理。
 - 新闻、讲话和经济日历如何获得可靠的首次发布时间？
 - 政府数据未来页面快照如何自动留存，且不依赖条款不兼容的聚合服务？
 
 ## 模型
 
 - 第一版状态标签由规则、HMM/Markov switching 还是监督学习产生？
-- 情景概率的朴素基线是什么？
+- 首个朴素基线已定义为同源历史 complete daily bar 的 5-session、0.5 ATR 三分类频率，至少 252 个已解析 origin；实际账户基线仍待本地冻结。
 - 弃权阈值如何根据校准与业务效用确定？
 
 ## 评估

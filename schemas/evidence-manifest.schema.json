@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://story2u.github.io/dao/schemas/evidence-manifest.schema.json",
   "title": "Private Evidence Manifest",
-  "description": "Non-secret metadata and hashes for a private point-in-time evidence bundle. Contract version 0.1.0.",
+  "description": "Non-secret metadata and hashes for a private point-in-time evidence bundle. Contract version 0.2.0.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -10,6 +10,7 @@
     "manifest_id",
     "instrument",
     "provider",
+    "as_of",
     "data_cutoff",
     "licence",
     "snapshots",
@@ -18,94 +19,63 @@
     "provenance"
   ],
   "properties": {
-    "contract_version": {"const": "0.1.0"},
+    "contract_version": {"const": "0.2.0"},
     "manifest_id": {"type": "string", "minLength": 1},
     "instrument": {"const": "XAUUSD"},
     "provider": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["provider_id", "instrument_id", "environment"],
+      "required": [
+        "provider_id",
+        "instrument_id",
+        "environment",
+        "account_instrument_verified",
+        "qualification_version"
+      ],
       "properties": {
-        "provider_id": {"type": "string", "minLength": 1},
-        "instrument_id": {"type": "string", "minLength": 1},
-        "environment": {"enum": ["practice", "live", "export", "other"]}
+        "provider_id": {"const": "oanda-v20"},
+        "instrument_id": {"const": "XAU_USD"},
+        "environment": {"enum": ["practice", "live"]},
+        "account_instrument_verified": {"const": true},
+        "qualification_version": {"const": "data-source-qualification:0.1.0"}
       }
     },
+    "as_of": {"type": "string", "format": "date-time"},
     "data_cutoff": {"type": "string", "format": "date-time"},
     "licence": {
       "type": "object",
       "additionalProperties": false,
       "required": [
         "name",
+        "region_or_entity",
         "version_or_effective_date",
         "locator",
         "usage_scope",
+        "accepted_by_account_holder",
         "verified_at"
       ],
       "properties": {
         "name": {"type": "string", "minLength": 1},
+        "region_or_entity": {"type": "string", "minLength": 1},
         "version_or_effective_date": {"type": "string", "minLength": 1},
-        "locator": {"type": "string", "minLength": 1},
+        "locator": {"type": "string", "format": "uri"},
         "usage_scope": {"const": "internal_evaluation"},
+        "accepted_by_account_holder": {"const": true},
         "verified_at": {"type": "string", "format": "date-time"}
       }
     },
     "snapshots": {
       "type": "array",
-      "minItems": 2,
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "snapshot_id",
-          "role",
-          "private_location_ref",
-          "request_locator_redacted",
-          "request_id",
-          "captured_at",
-          "sha256",
-          "bytes",
-          "record_count",
-          "first_observed_at",
-          "last_observed_at",
-          "source_timezone",
-          "timestamp_semantics",
-          "complete_only"
-        ],
-        "properties": {
-          "snapshot_id": {"type": "string", "minLength": 1},
-          "role": {
-            "enum": [
-              "price_daily",
-              "price_h4",
-              "macro_rates",
-              "macro_usd",
-              "event_clock",
-              "positioning",
-              "other"
-            ]
-          },
-          "private_location_ref": {
-            "description": "Opaque private reference, not a credential or public repository path.",
-            "type": "string",
-            "minLength": 1
-          },
-          "request_locator_redacted": {"type": "string", "minLength": 1},
-          "request_id": {"type": ["string", "null"]},
-          "captured_at": {"type": "string", "format": "date-time"},
-          "sha256": {
-            "type": "string",
-            "pattern": "^[a-f0-9]{64}$"
-          },
-          "bytes": {"type": "integer", "minimum": 1},
-          "record_count": {"type": "integer", "minimum": 1},
-          "first_observed_at": {"type": "string", "format": "date-time"},
-          "last_observed_at": {"type": "string", "format": "date-time"},
-          "source_timezone": {"type": "string", "minLength": 1},
-          "timestamp_semantics": {"enum": ["open_time", "close_time"]},
-          "complete_only": {"const": true}
-        }
-      }
+      "minItems": 6,
+      "items": {"$ref": "#/$defs/snapshot"},
+      "allOf": [
+        {"contains": {"properties": {"role": {"const": "instrument_spec"}}, "required": ["role"]}, "minContains": 1},
+        {"contains": {"properties": {"role": {"const": "price_daily"}}, "required": ["role"]}, "minContains": 1},
+        {"contains": {"properties": {"role": {"const": "price_h4"}}, "required": ["role"]}, "minContains": 1},
+        {"contains": {"properties": {"role": {"const": "macro_rates"}}, "required": ["role"]}, "minContains": 1},
+        {"contains": {"properties": {"role": {"const": "macro_usd"}}, "required": ["role"]}, "minContains": 1},
+        {"contains": {"properties": {"role": {"const": "event_clock"}}, "required": ["role"]}, "minContains": 1}
+      ]
     },
     "coverage": {
       "type": "object",
@@ -130,24 +100,106 @@
       "properties": {
         "missing_intervals": {
           "type": "array",
+          "maxItems": 0,
           "items": {"type": "string", "minLength": 1}
         },
-        "stale": {"type": "boolean"},
+        "stale": {"const": false},
         "future_records": {"const": false},
-        "notes": {
-          "type": "array",
-          "items": {"type": "string"}
-        }
+        "notes": {"type": "array", "items": {"type": "string"}}
       }
     },
     "provenance": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["created_at", "created_by", "source_policy_version"],
+      "required": [
+        "created_at",
+        "created_by",
+        "runtime_version",
+        "source_policy_version"
+      ],
       "properties": {
         "created_at": {"type": "string", "format": "date-time"},
         "created_by": {"type": "string", "minLength": 1},
+        "runtime_version": {"const": "dao-certified-runtime:0.2.0"},
         "source_policy_version": {"const": "data-source-qualification:0.1.0"}
+      }
+    }
+  },
+  "$defs": {
+    "snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "snapshot_id",
+        "role",
+        "private_location_ref",
+        "request_locator_redacted",
+        "request_id",
+        "source_locator",
+        "captured_at",
+        "available_at",
+        "sha256",
+        "source_response_location_ref",
+        "source_response_sha256",
+        "bytes",
+        "record_count",
+        "first_observed_at",
+        "last_observed_at",
+        "source_timezone",
+        "timestamp_semantics",
+        "complete_only",
+        "transform_id",
+        "freshness_max_seconds"
+      ],
+      "properties": {
+        "snapshot_id": {"type": "string", "minLength": 1},
+        "role": {
+          "enum": [
+            "instrument_spec",
+            "price_daily",
+            "price_h4",
+            "macro_rates",
+            "macro_usd",
+            "event_clock",
+            "positioning",
+            "other"
+          ]
+        },
+        "private_location_ref": {
+          "description": "Opaque private reference resolved only inside the licensed runtime.",
+          "type": "string",
+          "pattern": "^private://[A-Za-z0-9._/-]+$"
+        },
+        "request_locator_redacted": {"type": "string", "minLength": 1},
+        "request_id": {"type": ["string", "null"]},
+        "source_locator": {"type": "string", "format": "uri"},
+        "captured_at": {"type": "string", "format": "date-time"},
+        "available_at": {"type": "string", "format": "date-time"},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "source_response_location_ref": {
+          "type": ["string", "null"],
+          "pattern": "^private://[A-Za-z0-9._/-]+$"
+        },
+        "source_response_sha256": {
+          "type": ["string", "null"],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "bytes": {"type": "integer", "minimum": 1},
+        "record_count": {"type": "integer", "minimum": 1},
+        "first_observed_at": {"type": "string", "format": "date-time"},
+        "last_observed_at": {"type": "string", "format": "date-time"},
+        "source_timezone": {"type": "string", "minLength": 1},
+        "timestamp_semantics": {
+          "enum": [
+            "open_time",
+            "publication_time",
+            "event_time",
+            "not_applicable"
+          ]
+        },
+        "complete_only": {"const": true},
+        "transform_id": {"type": "string", "minLength": 1},
+        "freshness_max_seconds": {"type": "integer", "minimum": 1}
       }
     }
   }

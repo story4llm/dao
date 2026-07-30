@@ -15,7 +15,7 @@ DAO（道）是一个面向黄金市场的 AI 趋势认知项目。它把中国�
 
 ## 当前阶段
 
-仓库目前处于 `runtime-readiness` 阶段：研究、认知和评估契约已经形成，数据源资格矩阵与首个每日运行协议已经落地。当前重心是用私有 point-in-time 证据包执行第一份真实、可回放的 XAU/USD 认知帧，而不是建设前端或自动交易代码。
+仓库目前处于 `runtime-readiness` 阶段：研究、认知和评估契约已经形成，标准 Schema、跨文件硬门、OANDA 私有准备器与 Feature/Baseline 冻结已经落地。当前重心是在账户持有人本地环境执行第一份真实、可回放的 XAU/USD 认知帧，而不是建设前端或自动交易代码。
 
 核心研究报告：
 
@@ -51,7 +51,7 @@ flowchart TD
 | [工作流](docs/harness/WORKFLOW.md) | 从立项到提交的标准循环 |
 | [质量门](docs/harness/QUALITY_GATES.md) | 研究、数据、模型和输出的验收标准 |
 | [每日运行手册](docs/harness/DAILY_RUNBOOK.md) | 让 AI 读取 Harness 并执行一次认知运行 |
-| [每日运行 Prompt](prompts/daily-cognition-run-v0.1.md) | AI 的固定执行协议 |
+| [每日运行 Prompt](prompts/daily-cognition-run-v0.2.md) | AI 的固定执行协议 |
 | [项目状态](state/PROJECT_STATE.md) | 当前进展、下一步与阻塞项 |
 | [任务模板](tasks/TEMPLATE.md) | 每项工作的范围与完成定义 |
 
@@ -93,11 +93,11 @@ make validate
 
 ## 执行一次黄金趋势认知
 
-1. 连接 GitHub，并让 AI 读取 `AGENTS.md` 与 `prompts/daily-cognition-run-v0.1.md`。
-2. 附加通过资格门的私有 evidence bundle；不要把 API token 粘贴进聊天或仓库。
-3. 指定 `mode=certified`、`instrument=XAUUSD` 和本次 `data_cutoff`。
-4. AI 先检查许可、时点、bar 语义、完整性、哈希与冻结基线。
-5. 只有全部核心门通过，才生成可评分 Forecast；否则输出 blocked/Q0 并预测弃权。
+1. 在许可人的本地环境安装运行包并准备三类官方宏观/事件快照。
+2. 通过 `prepare-oanda` 从环境变量读取 OANDA token/account ID，生成私有原始文件与公开 ready run；不要把凭据放入参数、聊天或仓库。
+3. 用 `validate-bundle --private-root ...` 验证 Schema、时间、概率、引用和真实文件哈希。
+4. 让本地 AI 读取 `AGENTS.md` 与 `prompts/daily-cognition-run-v0.2.md`，生成 Evidence、MCF 与 Forecast。
+5. completed run 必须再次通过同一 bundle 校验；任一核心门失败时输出 blocked/Q0 并预测弃权。
 
 可直接复制的完整调用方式见[每日运行手册](docs/harness/DAILY_RUNBOOK.md)。
 
@@ -111,4 +111,4 @@ make validate
 
 ## 下一里程碑
 
-数据源资格矩阵、GitHub/私有证据分层和每日运行协议已经完成。下一步准备第一份 OANDA 或等价合格的私有 evidence bundle，冻结朴素基线，并执行首个真实 `certified` run；之后才能生成第一份 Q1 候选认知帧。具体见[数据源矩阵](docs/data/data-source-qualification-matrix-v0.1.md)、[每日运行手册](docs/harness/DAILY_RUNBOOK.md)与[项目状态](state/PROJECT_STATE.md)。
+机器运行层已经完成。下一步由账户持有人在本地注入 OANDA 凭据与实际区域许可证明，冻结三类官方宏观/事件快照，执行 `prepare-oanda` 和 `validate-bundle`，再由本地 AI 生成首个真实 `certified` Q1 候选认知帧。具体见[数据源矩阵](docs/data/data-source-qualification-matrix-v0.1.md)、[每日运行手册](docs/harness/DAILY_RUNBOOK.md)与[项目状态](state/PROJECT_STATE.md)。

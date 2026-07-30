@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://story2u.github.io/dao/schemas/forecast-contract.schema.json",
   "title": "Forecast Contract",
-  "description": "Pre-registered probabilistic forecast contract. Contract version 2.0.0.",
+  "description": "Pre-registered probabilistic forecast contract. Contract version 2.1.0.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -19,14 +19,15 @@
     "resolution_rule",
     "invalidation_conditions",
     "forecast_abstention",
-    "status"
+    "status",
+    "model_versions"
   ],
   "properties": {
-    "contract_version": {"type": "string", "minLength": 1},
+    "contract_version": {"const": "2.1.0"},
     "forecast_id": {"type": "string", "minLength": 1},
     "frame_id": {"type": "string", "minLength": 1},
     "question": {"type": "string", "minLength": 1},
-    "instrument": {"type": "string", "minLength": 1},
+    "instrument": {"const": "XAUUSD"},
     "created_at": {"type": "string", "format": "date-time"},
     "data_cutoff": {"type": "string", "format": "date-time"},
     "horizon": {
@@ -41,10 +42,7 @@
       "properties": {
         "unit": {"const": "completed_trading_session"},
         "primary_sessions": {"const": 5},
-        "diagnostic_sessions": {
-          "type": "array",
-          "const": [3]
-        },
+        "diagnostic_sessions": {"const": [3]},
         "starts_after_cutoff": {"const": true}
       }
     },
@@ -70,9 +68,20 @@
     "baseline": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["method", "probabilities", "version"],
+      "required": [
+        "baseline_ref",
+        "method",
+        "probabilities",
+        "version",
+        "sample_size",
+        "training_start",
+        "training_end",
+        "frozen_at",
+        "source_snapshot_sha256"
+      ],
       "properties": {
-        "method": {"type": "string", "minLength": 1},
+        "baseline_ref": {"type": "string", "minLength": 1},
+        "method": {"const": "rolling_historical_frequency"},
         "probabilities": {
           "type": "object",
           "additionalProperties": false,
@@ -83,18 +92,27 @@
             "range": {"type": "number", "minimum": 0, "maximum": 1}
           }
         },
-        "version": {"type": "string", "minLength": 1}
+        "version": {"const": "baseline:0.1.0"},
+        "sample_size": {"type": "integer", "minimum": 252},
+        "training_start": {"type": "string", "format": "date-time"},
+        "training_end": {"type": "string", "format": "date-time"},
+        "frozen_at": {"type": "string", "format": "date-time"},
+        "source_snapshot_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
       }
     },
     "evidence_refs": {
       "type": "array",
+      "minItems": 1,
       "uniqueItems": true,
-      "items": {"type": "string"}
+      "items": {"type": "string", "minLength": 1}
     },
     "counterevidence_refs": {
       "type": "array",
       "uniqueItems": true,
-      "items": {"type": "string"}
+      "items": {"type": "string", "minLength": 1}
     },
     "resolution_rule": {
       "type": "object",
@@ -105,24 +123,56 @@
         "normalizer",
         "neutral_band_atr_multiple",
         "boundary_policy",
-        "missing_data_policy"
+        "missing_data_policy",
+        "frozen_values"
       ],
       "properties": {
         "protocol_id": {"const": "xauusd-direction-5d:0.2.0"},
-        "reference_price_field": {"type": "string", "minLength": 1},
+        "reference_price_field": {"const": "mid.c"},
         "normalizer": {
           "type": "object",
           "additionalProperties": false,
           "required": ["method", "lookback_sessions", "freeze_at_cutoff"],
           "properties": {
-            "method": {"const": "wilder_atr"},
+            "method": {"const": "wilder_atr_seed_mean"},
             "lookback_sessions": {"const": 20},
             "freeze_at_cutoff": {"const": true}
           }
         },
         "neutral_band_atr_multiple": {"const": 0.5},
         "boundary_policy": {"const": "inclusive_range"},
-        "missing_data_policy": {"const": "mark_unresolvable"}
+        "missing_data_policy": {"const": "mark_unresolvable"},
+        "frozen_values": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "feature_snapshot_ref",
+            "feature_payload_sha256",
+            "reference_session",
+            "reference_close",
+            "atr20_at_cutoff",
+            "price_component",
+            "daily_alignment",
+            "alignment_timezone",
+            "calendar_id",
+            "calendar_version"
+          ],
+          "properties": {
+            "feature_snapshot_ref": {"type": "string", "minLength": 1},
+            "feature_payload_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "reference_session": {"type": "string", "format": "date-time"},
+            "reference_close": {"type": "number", "exclusiveMinimum": 0},
+            "atr20_at_cutoff": {"type": "number", "exclusiveMinimum": 0},
+            "price_component": {"const": "M"},
+            "daily_alignment": {"const": 17},
+            "alignment_timezone": {"const": "America/New_York"},
+            "calendar_id": {"const": "oanda-xauusd-ny17"},
+            "calendar_version": {"const": "0.1.0"}
+          }
+        }
       }
     },
     "invalidation_conditions": {
@@ -144,12 +194,11 @@
         "reason": {"type": ["string", "null"]}
       }
     },
-    "status": {
-      "enum": ["open", "resolved", "cancelled", "not_scored"]
-    },
+    "status": {"enum": ["open", "resolved", "cancelled", "not_scored"]},
     "model_versions": {
       "type": "array",
-      "items": {"type": "string"}
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1}
     }
   },
   "allOf": [
@@ -157,9 +206,8 @@
       "if": {
         "properties": {
           "forecast_abstention": {
-            "properties": {
-              "abstain": {"const": true}
-            }
+            "required": ["abstain"],
+            "properties": {"abstain": {"const": true}}
           }
         }
       },
@@ -167,9 +215,13 @@
         "properties": {
           "outcomes": {
             "items": {
-              "properties": {
-                "probability": {"type": "null"}
-              }
+              "properties": {"probability": {"type": "null"}}
+            }
+          },
+          "forecast_abstention": {
+            "properties": {
+              "reason_codes": {"minItems": 1},
+              "reason": {"type": "string", "minLength": 1}
             }
           },
           "status": {"const": "not_scored"}
@@ -179,11 +231,16 @@
         "properties": {
           "outcomes": {
             "items": {
-              "properties": {
-                "probability": {"type": "number"}
-              }
+              "properties": {"probability": {"type": "number"}}
             }
-          }
+          },
+          "forecast_abstention": {
+            "properties": {
+              "reason_codes": {"maxItems": 0},
+              "reason": {"type": "null"}
+            }
+          },
+          "status": {"const": "open"}
         }
       }
     }

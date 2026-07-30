@@ -104,11 +104,13 @@ GitHub 不保存：
 - 付费 CME 数据或可还原数据集的大量逐行摘录。
 - 许可不允许向第三方提供的原始响应。
 
+首个私有 bundle 使用 `python -m dao_runtime.cli prepare-oanda` 生成。token 与 account ID 只从本地环境变量读取；程序先核验账户 instruments endpoint 是否实际返回 `XAU_USD`，再保存 provider 原始响应与 complete-only 规范化响应。新运行不得手工把 manifest gate 改为通过。
+
 ## 6. 运行模式
 
 ### `certified`
 
-必须提供通过本矩阵的私有证据清单与哈希。核心价格证据缺失时不得生成可评分 Forecast Contract。
+必须提供通过本矩阵的私有证据清单与哈希，并在持有原始文件的许可人本地环境执行 `validate-bundle --private-root ...`。核心价格、利率、美元环境、事件时钟、Feature Snapshot 或 Baseline Snapshot 任一缺失时，不得生成可评分 Forecast Contract。
 
 ### Exploratory
 

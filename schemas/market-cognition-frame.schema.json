@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://story2u.github.io/dao/schemas/market-cognition-frame.schema.json",
   "title": "Market Cognition Frame",
-  "description": "Auditable market belief state. Contract version 2.0.0.",
+  "description": "Auditable market belief state. Contract version 2.1.0 with Q0 migration support.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -77,7 +77,8 @@
     },
     "scenarios": {
       "type": "array",
-      "minItems": 2,
+      "minItems": 3,
+      "maxItems": 3,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -163,7 +164,7 @@
           "items": {"type": "string"}
         },
         "prompt_version": {"type": ["string", "null"]},
-        "contract_version": {"type": "string", "minLength": 1},
+        "contract_version": {"enum": ["2.0.0-q0", "2.1.0"]},
         "certification_level": {"enum": ["Q0", "Q1", "Q2", "Q3"]},
         "resolution_protocol_version": {"type": ["string", "null"]}
       }
@@ -252,6 +253,45 @@
             "items": {
               "properties": {
                 "probability": {"type": "number"}
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "provenance": {
+            "required": ["certification_level"],
+            "properties": {
+              "certification_level": {"enum": ["Q1", "Q2", "Q3"]}
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "provenance": {
+            "properties": {
+              "contract_version": {"const": "2.1.0"}
+            }
+          },
+          "abstention": {
+            "properties": {
+              "state": {
+                "properties": {
+                  "abstain": {"const": false},
+                  "reason_codes": {"maxItems": 0},
+                  "reason": {"type": "null"}
+                }
+              },
+              "forecast": {
+                "properties": {
+                  "abstain": {"const": false},
+                  "reason_codes": {"maxItems": 0},
+                  "reason": {"type": "null"}
+                }
               }
             }
           }

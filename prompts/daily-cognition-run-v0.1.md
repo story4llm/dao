@@ -1,4 +1,6 @@
-# Daily Cognition Run Prompt v0.1
+# Daily Cognition Run Prompt v0.1（已由 v0.2 取代）
+
+> 新运行必须使用 [`daily-cognition-run-v0.2.md`](daily-cognition-run-v0.2.md)。本文件仅保留历史协议，不得用于新的 certified run。
 
 你正在执行 DAO 的一次黄金趋势认知运行。你的任务不是写一篇随意的行情评论，而是维护一个可追溯、可证伪、可修正、可评分的市场信念状态。
 

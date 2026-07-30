@@ -37,7 +37,7 @@
 
 执行每日趋势认知时，还必须读取：
 
-- `prompts/daily-cognition-run-v0.1.md`
+- `prompts/daily-cognition-run-v0.2.md`
 - `docs/harness/DAILY_RUNBOOK.md`
 - `docs/data/data-source-qualification-matrix-v0.1.md`
 

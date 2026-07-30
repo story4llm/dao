@@ -18,6 +18,7 @@
 - 回放只使用当时已经可获得的数据版本。
 - 修订数据和最终值不得穿越进入历史预测。
 - 每次运行记录 source policy 版本、去密钥请求清单、原始响应哈希和私有位置引用。
+- 冻结 Feature Snapshot 与 Baseline Snapshot，记录 C0、ATR(20)、price field、bar 边界、session sequence、历史窗口和代码版本。
 - 公开网页或截图只能进入 exploratory/Q0，除非其时点、bar 语义和许可另有证明。
 
 ## Gate 4：模型与概率
@@ -44,9 +45,12 @@
 ## Gate 7：工程与交付
 
 - schema、示例、实现和文档保持同步。
+- 每个 JSON 实例通过标准 JSON Schema Draft 2020-12 与 date-time format 检查。
+- certified bundle 在持有原始文件的私有环境通过引用、时间、概率、哈希、冻结量和 Resolution 重算检查。
 - 状态标注、未来概率和信念修正使用物理分离的评估记录。
 - 测试、验证脚本和人工检查通过。
 - 任务状态、项目状态和决策记录已更新。
 - 仓库中没有密钥、付费数据或大体积原始数据。
 - 仓库中没有许可受限的完整行情响应；`runtime/private/` 与 `runs/**/raw/` 被忽略。
 - `certified` 与 `exploratory` 由数据门决定，不能由 Agent 自行宣称。
+- GitHub Actions 自动执行 Harness 与反例测试；CI 不接触许可受限原始行情。

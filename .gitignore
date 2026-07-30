@@ -2,12 +2,18 @@
 .env
 .env.*
 secrets/
+private-bundle-config*.json
+!templates/private-bundle-config.example.json
 
 # Licensed or account-scoped market data
 runtime/private/
 runs/**/raw/
 
 # Local build and cache output
+.venv/
 __pycache__/
 *.pyc
 *.zip
+*.egg-info/
+build/
+dist/

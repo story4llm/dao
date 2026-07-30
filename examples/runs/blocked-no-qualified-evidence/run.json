@@ -1,5 +1,5 @@
 {
-  "contract_version": "0.1.0",
+  "contract_version": "0.2.0",
   "run_id": "run-example-blocked-no-qualified-evidence",
   "mode": "exploratory",
   "instrument": "XAUUSD",
@@ -9,37 +9,50 @@
   "input": {
     "evidence_manifest": null,
     "previous_frame": null,
+    "feature_snapshot": null,
     "baseline": null,
     "daily_complete_bars": 0,
     "h4_complete_bars": 0,
     "private_raw_data": false
   },
   "gates": {
+    "instrument_available": "unknown",
     "licence": "unknown",
     "temporal_integrity": "fail",
     "bar_semantics": "unknown",
     "completeness": "fail",
     "snapshot_hash": "fail",
+    "macro_coverage": "fail",
+    "event_clock": "fail",
+    "feature_snapshot_frozen": "fail",
     "baseline_frozen": "fail"
   },
   "outputs": {
+    "evidence_items": null,
     "frame": null,
     "forecast": null,
     "delta": null,
+    "resolution": null,
     "explanation": "examples/runs/blocked-no-qualified-evidence/explanation.md"
   },
   "blocking_reasons": [
     "missing_evidence_manifest",
+    "instrument_not_available",
     "missing_daily_history",
     "missing_h4_history",
+    "missing_macro_rates",
+    "missing_macro_usd",
+    "missing_event_clock",
     "unverified_temporal_integrity",
     "unknown_bar_semantics",
     "missing_snapshot_hash",
+    "missing_feature_snapshot",
     "missing_baseline"
   ],
   "provenance": {
-    "prompt_version": "daily-cognition-run:0.1.0",
+    "prompt_version": "daily-cognition-run:0.2.0",
     "source_policy_version": "data-source-qualification:0.1.0",
+    "runtime_version": "dao-certified-runtime:0.2.0",
     "model_versions": ["protocol-dry-run"],
     "created_at": "2026-07-30T12:00:00Z"
   }

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://story2u.github.io/dao/schemas/resolution-record.schema.json",
   "title": "Resolution Record",
-  "description": "Append-only future outcome and scoring record. Contract version 0.2.0.",
+  "description": "Append-only future outcome and scoring record. Contract version 0.2.1.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -39,9 +39,9 @@
         "outcome_id"
       ],
       "properties": {
-        "reference_close": {"type": ["number", "null"]},
-        "diagnostic_close_3": {"type": ["number", "null"]},
-        "resolution_close_5": {"type": ["number", "null"]},
+        "reference_close": {"type": ["number", "null"], "exclusiveMinimum": 0},
+        "diagnostic_close_3": {"type": ["number", "null"], "exclusiveMinimum": 0},
+        "resolution_close_5": {"type": ["number", "null"], "exclusiveMinimum": 0},
         "atr20_at_cutoff": {"type": ["number", "null"], "exclusiveMinimum": 0},
         "normalized_change_3": {"type": ["number", "null"]},
         "normalized_change_5": {"type": ["number", "null"]},
@@ -63,7 +63,7 @@
         "eligible": {"type": "boolean"},
         "exclusion_reasons": {
           "type": "array",
-          "items": {"type": "string"}
+          "items": {"type": "string", "minLength": 1}
         },
         "brier_multiclass": {"type": ["number", "null"], "minimum": 0},
         "log_loss": {"type": ["number", "null"], "minimum": 0},
@@ -82,7 +82,7 @@
       ],
       "properties": {
         "append_only": {"const": true},
-        "forecast_frozen_before_outcomes": {"const": true},
+        "forecast_frozen_before_outcomes": {"type": "boolean"},
         "resolver_ref": {"type": "string", "minLength": 1},
         "notes": {"type": "array", "items": {"type": "string"}}
       }
@@ -92,9 +92,66 @@
       "additionalProperties": false,
       "required": ["contract_version", "resolver_version"],
       "properties": {
-        "contract_version": {"const": "0.2.0"},
-        "resolver_version": {"type": "string", "minLength": 1}
+        "contract_version": {"const": "0.2.1"},
+        "resolver_version": {"const": "resolution:0.1.0"}
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": ["status"],
+        "properties": {"status": {"const": "resolved"}}
+      },
+      "then": {
+        "properties": {
+          "observed": {
+            "properties": {
+              "reference_close": {"type": "number"},
+              "diagnostic_close_3": {"type": "number"},
+              "resolution_close_5": {"type": "number"},
+              "atr20_at_cutoff": {"type": "number"},
+              "normalized_change_3": {"type": "number"},
+              "normalized_change_5": {"type": "number"},
+              "outcome_id": {"enum": ["up", "down", "range"]}
+            }
+          },
+          "scoring": {
+            "properties": {
+              "eligible": {"const": true},
+              "exclusion_reasons": {"maxItems": 0},
+              "brier_multiclass": {"type": "number"},
+              "log_loss": {"type": "number"},
+              "baseline_brier": {"type": "number"},
+              "brier_skill_score": {"type": "number"}
+            }
+          },
+          "audit": {
+            "properties": {
+              "forecast_frozen_before_outcomes": {"const": true}
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "observed": {
+            "properties": {
+              "outcome_id": {"type": "null"}
+            }
+          },
+          "scoring": {
+            "properties": {
+              "eligible": {"const": false},
+              "exclusion_reasons": {"minItems": 1},
+              "brier_multiclass": {"type": "null"},
+              "log_loss": {"type": "null"},
+              "baseline_brier": {"type": "null"},
+              "brier_skill_score": {"type": "null"}
+            }
+          }
+        }
+      }
+    }
+  ]
 }

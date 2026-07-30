@@ -1,5 +1,5 @@
 {
-  "contract_version": "0.1.0",
+  "contract_version": "0.2.0",
   "run_id": "run-YYYYMMDD-xauusd",
   "mode": "exploratory",
   "instrument": "XAUUSD",
@@ -9,29 +9,37 @@
   "input": {
     "evidence_manifest": null,
     "previous_frame": null,
+    "feature_snapshot": null,
     "baseline": null,
     "daily_complete_bars": 0,
     "h4_complete_bars": 0,
     "private_raw_data": false
   },
   "gates": {
+    "instrument_available": "unknown",
     "licence": "unknown",
     "temporal_integrity": "unknown",
     "bar_semantics": "unknown",
     "completeness": "unknown",
     "snapshot_hash": "unknown",
+    "macro_coverage": "unknown",
+    "event_clock": "unknown",
+    "feature_snapshot_frozen": "unknown",
     "baseline_frozen": "unknown"
   },
   "outputs": {
+    "evidence_items": null,
     "frame": null,
     "forecast": null,
     "delta": null,
+    "resolution": null,
     "explanation": null
   },
   "blocking_reasons": [],
   "provenance": {
-    "prompt_version": "daily-cognition-run:0.1.0",
+    "prompt_version": "daily-cognition-run:0.2.0",
     "source_policy_version": "data-source-qualification:0.1.0",
+    "runtime_version": "dao-certified-runtime:0.2.0",
     "model_versions": ["placeholder"],
     "created_at": "YYYY-MM-DDTHH:MM:SSZ"
   }

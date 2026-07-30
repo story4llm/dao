@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://story2u.github.io/dao/schemas/cognition-run.schema.json",
   "title": "Cognition Run Manifest",
-  "description": "One auditable execution of the DAO daily cognition protocol. Contract version 0.1.0.",
+  "description": "One auditable execution of the DAO daily cognition protocol. Contract version 0.2.0.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -20,7 +20,7 @@
     "provenance"
   ],
   "properties": {
-    "contract_version": {"const": "0.1.0"},
+    "contract_version": {"const": "0.2.0"},
     "run_id": {"type": "string", "minLength": 1},
     "mode": {"enum": ["certified", "exploratory"]},
     "instrument": {"const": "XAUUSD"},
@@ -33,15 +33,17 @@
       "required": [
         "evidence_manifest",
         "previous_frame",
+        "feature_snapshot",
         "baseline",
         "daily_complete_bars",
         "h4_complete_bars",
         "private_raw_data"
       ],
       "properties": {
-        "evidence_manifest": {"type": ["string", "null"]},
-        "previous_frame": {"type": ["string", "null"]},
-        "baseline": {"type": ["string", "null"]},
+        "evidence_manifest": {"type": ["string", "null"], "minLength": 1},
+        "previous_frame": {"type": ["string", "null"], "minLength": 1},
+        "feature_snapshot": {"type": ["string", "null"], "minLength": 1},
+        "baseline": {"type": ["string", "null"], "minLength": 1},
         "daily_complete_bars": {"type": "integer", "minimum": 0},
         "h4_complete_bars": {"type": "integer", "minimum": 0},
         "private_raw_data": {"type": "boolean"}
@@ -51,31 +53,48 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "instrument_available",
         "licence",
         "temporal_integrity",
         "bar_semantics",
         "completeness",
         "snapshot_hash",
+        "macro_coverage",
+        "event_clock",
+        "feature_snapshot_frozen",
         "baseline_frozen"
       ],
       "properties": {
+        "instrument_available": {"enum": ["pass", "fail", "unknown"]},
         "licence": {"enum": ["pass", "fail", "unknown"]},
         "temporal_integrity": {"enum": ["pass", "fail", "unknown"]},
         "bar_semantics": {"enum": ["pass", "fail", "unknown"]},
         "completeness": {"enum": ["pass", "fail", "unknown"]},
         "snapshot_hash": {"enum": ["pass", "fail", "unknown"]},
+        "macro_coverage": {"enum": ["pass", "fail", "unknown"]},
+        "event_clock": {"enum": ["pass", "fail", "unknown"]},
+        "feature_snapshot_frozen": {"enum": ["pass", "fail", "unknown"]},
         "baseline_frozen": {"enum": ["pass", "fail", "unknown"]}
       }
     },
     "outputs": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["frame", "forecast", "delta", "explanation"],
+      "required": [
+        "evidence_items",
+        "frame",
+        "forecast",
+        "delta",
+        "resolution",
+        "explanation"
+      ],
       "properties": {
-        "frame": {"type": ["string", "null"]},
-        "forecast": {"type": ["string", "null"]},
-        "delta": {"type": ["string", "null"]},
-        "explanation": {"type": ["string", "null"]}
+        "evidence_items": {"type": ["string", "null"], "minLength": 1},
+        "frame": {"type": ["string", "null"], "minLength": 1},
+        "forecast": {"type": ["string", "null"], "minLength": 1},
+        "delta": {"type": ["string", "null"], "minLength": 1},
+        "resolution": {"type": ["string", "null"], "minLength": 1},
+        "explanation": {"type": ["string", "null"], "minLength": 1}
       }
     },
     "blocking_reasons": {
@@ -84,12 +103,18 @@
       "items": {
         "enum": [
           "missing_evidence_manifest",
+          "instrument_not_available",
           "missing_daily_history",
           "missing_h4_history",
+          "missing_macro_rates",
+          "missing_macro_usd",
+          "missing_event_clock",
           "unverified_licence",
           "unverified_temporal_integrity",
           "unknown_bar_semantics",
           "missing_snapshot_hash",
+          "hash_mismatch",
+          "missing_feature_snapshot",
           "missing_baseline",
           "unmodelled_event",
           "other"
@@ -102,12 +127,14 @@
       "required": [
         "prompt_version",
         "source_policy_version",
+        "runtime_version",
         "model_versions",
         "created_at"
       ],
       "properties": {
-        "prompt_version": {"const": "daily-cognition-run:0.1.0"},
+        "prompt_version": {"const": "daily-cognition-run:0.2.0"},
         "source_policy_version": {"const": "data-source-qualification:0.1.0"},
+        "runtime_version": {"const": "dao-certified-runtime:0.2.0"},
         "model_versions": {
           "type": "array",
           "minItems": 1,
@@ -119,16 +146,105 @@
   },
   "allOf": [
     {
-      "if": {"properties": {"mode": {"const": "certified"}}},
-      "then": {"properties": {"input": {"properties": {"private_raw_data": {"const": true}}}}}
+      "if": {
+        "required": ["mode"],
+        "properties": {"mode": {"const": "certified"}}
+      },
+      "then": {
+        "properties": {
+          "input": {
+            "properties": {"private_raw_data": {"const": true}}
+          }
+        }
+      }
     },
     {
-      "if": {"properties": {"status": {"const": "blocked"}}},
-      "then": {"properties": {"blocking_reasons": {"minItems": 1}}}
+      "if": {
+        "required": ["status"],
+        "properties": {"status": {"const": "blocked"}}
+      },
+      "then": {
+        "properties": {
+          "blocking_reasons": {"minItems": 1},
+          "outputs": {
+            "properties": {
+              "frame": {"type": "null"},
+              "forecast": {"type": "null"},
+              "delta": {"type": "null"},
+              "resolution": {"type": "null"}
+            }
+          }
+        }
+      }
     },
     {
-      "if": {"properties": {"status": {"enum": ["ready", "completed", "resolved"]}}},
-      "then": {"properties": {"blocking_reasons": {"maxItems": 0}}}
+      "if": {
+        "required": ["status"],
+        "properties": {
+          "status": {"enum": ["ready", "completed", "resolved"]}
+        }
+      },
+      "then": {
+        "properties": {
+          "mode": {"const": "certified"},
+          "blocking_reasons": {"maxItems": 0},
+          "input": {
+            "properties": {
+              "evidence_manifest": {"type": "string"},
+              "feature_snapshot": {"type": "string"},
+              "baseline": {"type": "string"},
+              "daily_complete_bars": {"minimum": 60},
+              "h4_complete_bars": {"minimum": 30},
+              "private_raw_data": {"const": true}
+            }
+          },
+          "gates": {
+            "properties": {
+              "instrument_available": {"const": "pass"},
+              "licence": {"const": "pass"},
+              "temporal_integrity": {"const": "pass"},
+              "bar_semantics": {"const": "pass"},
+              "completeness": {"const": "pass"},
+              "snapshot_hash": {"const": "pass"},
+              "macro_coverage": {"const": "pass"},
+              "event_clock": {"const": "pass"},
+              "feature_snapshot_frozen": {"const": "pass"},
+              "baseline_frozen": {"const": "pass"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["status"],
+        "properties": {"status": {"enum": ["completed", "resolved"]}}
+      },
+      "then": {
+        "properties": {
+          "outputs": {
+            "properties": {
+              "evidence_items": {"type": "string"},
+              "frame": {"type": "string"},
+              "forecast": {"type": "string"},
+              "explanation": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["status"],
+        "properties": {"status": {"const": "resolved"}}
+      },
+      "then": {
+        "properties": {
+          "outputs": {
+            "properties": {"resolution": {"type": "string"}}
+          }
+        }
+      }
     }
   ]
 }

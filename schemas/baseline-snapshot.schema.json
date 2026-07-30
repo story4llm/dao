@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://story2u.github.io/dao/schemas/baseline-snapshot.schema.json",
+  "title": "Frozen Baseline Snapshot",
+  "description": "Historical-frequency baseline frozen before the forecast. Contract version 0.1.0.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "baseline_id",
+    "instrument",
+    "protocol_id",
+    "data_cutoff",
+    "method",
+    "training",
+    "probabilities",
+    "normalization",
+    "source_daily_snapshot_sha256",
+    "feature_config_sha256",
+    "baseline_payload_sha256",
+    "provenance"
+  ],
+  "properties": {
+    "contract_version": {"const": "0.1.0"},
+    "baseline_id": {"type": "string", "minLength": 1},
+    "instrument": {"const": "XAUUSD"},
+    "protocol_id": {"const": "xauusd-direction-5d:0.2.0"},
+    "data_cutoff": {"type": "string", "format": "date-time"},
+    "method": {"const": "rolling_historical_frequency"},
+    "training": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start_session",
+        "end_session",
+        "sample_size",
+        "minimum_sample_size",
+        "outcome_counts"
+      ],
+      "properties": {
+        "start_session": {"type": "string", "format": "date-time"},
+        "end_session": {"type": "string", "format": "date-time"},
+        "sample_size": {"type": "integer", "minimum": 252},
+        "minimum_sample_size": {"const": 252},
+        "outcome_counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["up", "down", "range"],
+          "properties": {
+            "up": {"type": "integer", "minimum": 0},
+            "down": {"type": "integer", "minimum": 0},
+            "range": {"type": "integer", "minimum": 0}
+          }
+        }
+      }
+    },
+    "probabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["up", "down", "range"],
+      "properties": {
+        "up": {"type": "number", "minimum": 0, "maximum": 1},
+        "down": {"type": "number", "minimum": 0, "maximum": 1},
+        "range": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "normalization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "horizon_sessions",
+        "atr_method",
+        "atr_lookback_true_ranges",
+        "neutral_band_atr_multiple",
+        "boundary_policy"
+      ],
+      "properties": {
+        "horizon_sessions": {"const": 5},
+        "atr_method": {"const": "wilder_atr_seed_mean"},
+        "atr_lookback_true_ranges": {"const": 20},
+        "neutral_band_atr_multiple": {"const": 0.5},
+        "boundary_policy": {"const": "inclusive_range"}
+      }
+    },
+    "source_daily_snapshot_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "feature_config_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "baseline_payload_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["created_at", "runtime_version", "code_version"],
+      "properties": {
+        "created_at": {"type": "string", "format": "date-time"},
+        "runtime_version": {"const": "dao-certified-runtime:0.2.0"},
+        "code_version": {"const": "baseline:0.1.0"}
+      }
+    }
+  }
+}

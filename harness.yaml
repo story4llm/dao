@@ -17,7 +17,7 @@ entrypoints:
   agent: AGENTS.md
   state: state/PROJECT_STATE.md
   context_map: docs/harness/CONTEXT_MAP.md
-  daily_run: prompts/daily-cognition-run-v0.1.md
+  daily_run: prompts/daily-cognition-run-v0.2.md
   source_policy: docs/data/data-source-qualification-matrix-v0.1.md
 
 commands:
@@ -32,6 +32,8 @@ contracts:
   annotation_record: schemas/annotation-record.schema.json
   resolution_record: schemas/resolution-record.schema.json
   cognition_run: schemas/cognition-run.schema.json
+  feature_snapshot: schemas/feature-snapshot.schema.json
+  baseline_snapshot: schemas/baseline-snapshot.schema.json
 
 state_files:
   - state/PROJECT_STATE.md
@@ -47,3 +49,4 @@ quality_gates:
   - abstention-support
   - licensed-data-boundary
   - private-evidence-manifest
+  - machine-enforced-bundle
