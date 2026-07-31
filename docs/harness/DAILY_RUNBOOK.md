@@ -14,7 +14,7 @@ python3 -m venv .venv
 python -m pip install -e .
 ```
 
-XAU/USD 复制 `templates/private-bundle-config.example.json`；GC 复制 `templates/private-gc-bundle-config.example.json`。在仓库外填写实际协议和一次性许可声明。`official_snapshots[].path` 可省略（或配置 `auto_download: true`），运行器会从 `source_locator` 的白名单官方 HTTPS 地址自动下载到 private root；仅在离线回放时才提供本地文件路径。示例中的 `REPLACE` 或 `example.com` 会被程序拒绝。
+XAU/USD 复制 `templates/private-bundle-config.example.json`；GC 复制 `templates/private-gc-bundle-config.example.json`。默认 `automated` 模式只需填写合约身份、数据源 URL 和 API 环境变量，不要求每次重复填写许可声明。`official_snapshots[].path` 可省略（或配置 `auto_download: true`），运行器会从 `source_locator` 的官方 HTTPS 地址自动下载到 private root；仅在离线回放时才提供本地文件路径。示例中的 `REPLACE` 或 `example.com` 会被程序拒绝。
 
 在本地交互式输入凭据，避免把值留在 shell history：
 
@@ -38,7 +38,7 @@ python -m dao_runtime.cli prepare-oanda \
 
 ### 0.1 单月 COMEX GC
 
-先把获许可的供应商文件在私有环境转换为模板定义的 JSON。必须是一个明确月份（如 `GCZ26`），不能是连续合约。日线至少 278 条并含 `settlement`，H4 至少 30 条；另提供合约规格和未来五个 CME session 日历快照。
+在配置中填写一个明确月份（如 `GCZ26`）及四个 source URL；Agent 会自动下载 JSON 到 private root，也兼容 `path` 离线回放。不能使用连续合约。日线至少 278 条并含 `settlement`，H4 至少 30 条；另提供合约规格和未来五个 CME session 日历快照。
 
 ```bash
 python -m dao_runtime.cli prepare-gc \
@@ -99,6 +99,7 @@ OANDA/CME 私有证据不得作为不符合数据许可的云端会话附件。�
 
 | 模式 | 核心证据 | 允许输出 |
 |---|---|---|
+| `automated` | API 可访问、数据结构/时间/完整性通过；许可只记录状态 | Agent 自动生成研究 Forecast；缺数据时弃权 |
 | `certified` | 价格源、时点、许可和快照全部通过 | Q1 候选 MCF、可冻结 Forecast；Q2/Q3 仍需审议和到期解析 |
 | `exploratory` | 可使用截图或公开网页，但至少一项硬门未通过 | Q0 观察与竞争假设；核心价格不合格时预测概率必须为 `null` |
 
@@ -113,7 +114,7 @@ OANDA/CME 私有证据不得作为不符合数据许可的云端会话附件。�
 prompts/daily-cognition-run-v0.3.md 和其中列出的最小上下文。
 
 以本地 ready run 与对应 private root 执行一次黄金每日趋势认知：
-- mode: certified
+- mode: automated
 - horizon: 截止后第 5 个完整交易日
 - 日线为主，4 小时辅助
 - 轨道、合约、price field 和 protocol 完全采用 ready run，不跨轨替换

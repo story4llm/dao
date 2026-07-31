@@ -145,6 +145,8 @@ class OandaPreparationTests(unittest.TestCase):
                     for role in ("macro_rates", "macro_usd", "event_clock")
                 ],
             }
+            # Automated mode must run with no repeated licence form.
+            config.pop("licence")
             config_path = root / "config.json"
             config_path.write_text(json.dumps(config), encoding="utf-8")
             public_dir = root / "public"
@@ -165,6 +167,10 @@ class OandaPreparationTests(unittest.TestCase):
                 ),
             ):
                 prepare_private_bundle(config_path, public_dir, private_dir)
+
+            generated_run = json.loads((public_dir / "run.json").read_text())
+            self.assertEqual(generated_run["mode"], "automated")
+            self.assertEqual(generated_run["gates"]["licence"], "unknown")
 
             public_text = "\n".join(
                 path.read_text(encoding="utf-8")

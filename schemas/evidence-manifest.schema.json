@@ -125,8 +125,8 @@
         "region_or_entity": {"type": "string", "minLength": 1},
         "version_or_effective_date": {"type": "string", "minLength": 1},
         "locator": {"type": "string", "format": "uri"},
-        "usage_scope": {"const": "internal_evaluation"},
-        "accepted_by_account_holder": {"const": true},
+        "usage_scope": {"enum": ["internal_evaluation", "unknown"]},
+        "accepted_by_account_holder": {"type": "boolean"},
         "verified_at": {"type": "string", "format": "date-time"}
       }
     },

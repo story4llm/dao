@@ -1,5 +1,6 @@
 {
   "run_id": "REPLACE",
+  "mode": "automated",
   "contract_code": "GCZ26",
   "as_of": "REPLACE",
   "data_cutoff": "REPLACE",
@@ -93,4 +94,3 @@
     }
   ]
 }
-

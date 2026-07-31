@@ -62,6 +62,7 @@
 - certified 运行必须提供合格私有 evidence bundle 和冻结基线；缺失时不得从网页补行情或填写占位概率。
 - 首轮 Forecast 的概率必须逐项等于程序冻结的历史频率基线；未经新校准协议，LLM 不得凭叙事调整概率。
 - OANDA/CME 原始数据只允许由符合许可的本地 Agent 读取，不上传至不符合许可的第三方 AI 会话；官方宏观/事件快照由 prepare 命令从白名单官方 HTTPS 地址自动下载到私有目录。
+- Agent 默认使用 `automated` 模式：API key 是调用授权，许可字段仅作 provenance；`certified` 仍可显式启用以要求完整审计证明。
 
 ## 下一步
 
@@ -75,7 +76,7 @@
 ## 阻塞与风险
 
 - 本次 XAU/USD 运行已从 `.env` 读取账户凭据，并自动下载 Treasury、Federal Reserve H.10、FOMC 官方快照；输出位于本地 gitignored private root，未提交原始响应。
-- 尚未取得真实 GC 授权快照和 entitlement/ILA 证明；当前 GC 正例只使用合成数据，不能证明真实预测优势。
+- 尚未配置真实 GC 合约数据源 URL/API 凭据；当前 GC 正例只使用合成数据，不能证明真实预测优势。
 - OANDA 条件通过只覆盖内部使用；完整价格响应不能放入公开 GitHub。
 - 基线算法与契约已实现，但尚未在用户实际 OANDA 快照上冻结，因此当前仍没有可评分真实 Forecast。
 - GitHub 连接无法访问私有行情；OANDA/CME 原始数据不应上传云端，必须由符合许可的本地 Agent 读取私有目录。

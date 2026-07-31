@@ -323,6 +323,9 @@ def prepare_private_bundle(
     environment = config.get("environment")
     if environment not in OANDA_BASES:
         raise ValueError("config.environment must be practice or live")
+    mode = config.get("mode", "automated")
+    if mode not in {"automated", "certified"}:
+        raise ValueError("config.mode must be automated or certified")
     licence = config.get("licence", {})
     required_licence = {
         "name",
@@ -333,13 +336,22 @@ def prepare_private_bundle(
         "accepted_by_account_holder",
         "verified_at",
     }
-    if required_licence - set(licence):
-        raise ValueError("licence attestation is incomplete")
-    if (
-        licence.get("usage_scope") != "internal_evaluation"
-        or licence.get("accepted_by_account_holder") is not True
-    ):
-        raise ValueError("licence attestation does not permit certified internal use")
+    licence_verified = not (required_licence - set(licence)) and (
+        licence.get("usage_scope") == "internal_evaluation"
+        and licence.get("accepted_by_account_holder") is True
+    )
+    if mode == "certified" and not licence_verified:
+        raise ValueError("certified mode requires a complete licence attestation")
+    if not licence_verified:
+        licence = {
+            "name": "not provided by caller",
+            "region_or_entity": "unknown",
+            "version_or_effective_date": "unknown",
+            "locator": "about:blank",
+            "usage_scope": "unknown",
+            "accepted_by_account_holder": False,
+            "verified_at": format_datetime(utc_now()),
+        }
     if _contains_placeholder(config):
         raise ValueError("example placeholders cannot be used for a certified bundle")
     official_items = config.get("official_snapshots", [])
@@ -493,7 +505,7 @@ def prepare_private_bundle(
     run = {
         "contract_version": "0.2.0",
         "run_id": run_id,
-        "mode": "certified",
+        "mode": mode,
         "instrument": "XAUUSD",
         "as_of": as_of,
         "data_cutoff": data_cutoff,
@@ -509,7 +521,7 @@ def prepare_private_bundle(
         },
         "gates": {
             "instrument_available": "pass",
-            "licence": "pass",
+                "licence": "pass" if licence_verified else "unknown",
             "temporal_integrity": "pass",
             "bar_semantics": "pass",
             "completeness": "pass",

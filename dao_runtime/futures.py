@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
+import urllib.error
+import urllib.parse
+import urllib.request
 from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -233,17 +237,40 @@ def _source_config(config: dict[str, Any], role: str) -> dict[str, Any]:
     source = config.get("source_files", {}).get(role)
     if not isinstance(source, dict):
         raise ValueError(f"source_files.{role} is required")
-    required = {
-        "path",
-        "source_locator",
-        "captured_at",
-        "available_at",
-        "source_timezone",
-        "freshness_max_seconds",
-    }
+    required = {"source_locator"}
     if required - set(source):
         raise ValueError(f"source_files.{role} metadata is incomplete")
+    source_path = Path(str(source.get("path", ""))).expanduser().resolve()
+    auto_download = source.get("auto_download", not source_path.is_file())
+    if auto_download:
+        captured = format_datetime(utc_now())
+        source.setdefault("captured_at", captured)
+        source.setdefault("available_at", captured)
+        source.setdefault("source_timezone", "UTC")
+        source.setdefault("freshness_max_seconds", 86400)
+    else:
+        for field in ("captured_at", "available_at", "source_timezone", "freshness_max_seconds"):
+            if field not in source:
+                raise ValueError(f"source_files.{role} metadata is incomplete")
     return source
+
+
+def _download_source(source: dict[str, Any], role: str) -> bytes:
+    url = source.get("url") or source.get("source_locator")
+    if not isinstance(url, str) or urllib.parse.urlparse(url).scheme != "https":
+        raise ValueError(f"{role} requires an HTTPS url for automatic download")
+    headers = {"Accept": "application/json", "User-Agent": "dao-certified-runtime/0.3.0"}
+    env_key = source.get("token_env")
+    if isinstance(env_key, str) and os.environ.get(env_key):
+        headers["Authorization"] = f"Bearer {os.environ[env_key]}"
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=30) as response:
+            raw = response.read()
+    except (urllib.error.HTTPError, urllib.error.URLError, OSError) as exc:
+        raise RuntimeError(f"{role} automatic download failed") from exc
+    if not raw.strip():
+        raise RuntimeError(f"{role} automatic download returned an empty response")
+    return raw
 
 
 def _copy_and_load_source(
@@ -251,11 +278,15 @@ def _copy_and_load_source(
     private_dir: Path,
     role: str,
 ) -> tuple[Path, dict[str, Any]]:
-    source_path = Path(str(source["path"])).expanduser().resolve()
-    if not source_path.is_file():
-        raise ValueError(f"{role} source file does not exist: {source_path}")
+    source_path = Path(str(source.get("path", ""))).expanduser().resolve()
+    auto_download = source.get("auto_download", not source_path.is_file())
     raw_path = private_dir / f"gc-{role}-source{source_path.suffix or '.json'}"
-    shutil.copyfile(source_path, raw_path)
+    if auto_download:
+        raw_path.write_bytes(_download_source(source, role))
+    else:
+        if not source_path.is_file():
+            raise ValueError(f"{role} source file does not exist: {source_path}")
+        shutil.copyfile(source_path, raw_path)
     try:
         payload = load_json(raw_path)
     except json.JSONDecodeError as exc:
@@ -321,8 +352,8 @@ def prepare_gc_bundle(
         raise ValueError("example placeholders cannot be used for a certified bundle")
     run_id = config.get("run_id")
     contract_code = config.get("contract_code")
-    as_of = config.get("as_of")
-    data_cutoff = config.get("data_cutoff")
+    as_of = config.get("as_of") or format_datetime(utc_now())
+    data_cutoff = config.get("data_cutoff") or as_of
     if not isinstance(run_id, str) or not run_id:
         raise ValueError("config.run_id is required")
     if not isinstance(contract_code, str):
@@ -332,11 +363,15 @@ def prepare_gc_bundle(
     if parse_datetime(data_cutoff) > parse_datetime(as_of):
         raise ValueError("config.data_cutoff cannot be after config.as_of")
     resolution_sessions = config.get("resolution_sessions")
-    if not isinstance(resolution_sessions, list) or not all(
-        isinstance(value, str) for value in resolution_sessions
+    if resolution_sessions is not None and (
+        not isinstance(resolution_sessions, list)
+        or not all(isinstance(value, str) for value in resolution_sessions)
     ):
         raise ValueError("config.resolution_sessions must be a date-time array")
 
+    mode = config.get("mode", "automated")
+    if mode not in {"automated", "certified"}:
+        raise ValueError("config.mode must be automated or certified")
     licence = config.get("licence", {})
     required_licence = {
         "name",
@@ -347,13 +382,22 @@ def prepare_gc_bundle(
         "accepted_by_account_holder",
         "verified_at",
     }
-    if required_licence - set(licence):
-        raise ValueError("licence attestation is incomplete")
-    if (
-        licence.get("usage_scope") != "internal_evaluation"
-        or licence.get("accepted_by_account_holder") is not True
-    ):
-        raise ValueError("licence attestation does not permit certified internal use")
+    licence_verified = not (required_licence - set(licence)) and (
+        licence.get("usage_scope") == "internal_evaluation"
+        and licence.get("accepted_by_account_holder") is True
+    )
+    if mode == "certified" and not licence_verified:
+        raise ValueError("certified mode requires a complete licence attestation")
+    if not licence_verified:
+        licence = {
+            "name": "not provided by caller",
+            "region_or_entity": "unknown",
+            "version_or_effective_date": "unknown",
+            "locator": "about:blank",
+            "usage_scope": "unknown",
+            "accepted_by_account_holder": False,
+            "verified_at": format_datetime(utc_now()),
+        }
 
     official_items = config.get("official_snapshots", [])
     roles = [item.get("role") for item in official_items]
@@ -370,6 +414,12 @@ def prepare_gc_bundle(
     calendar_raw_path, calendar_payload = _copy_and_load_source(
         calendar_source, private_dir, "contract-calendar"
     )
+    if resolution_sessions is None:
+        resolution_sessions = calendar_payload.get("resolution_sessions")
+        if not isinstance(resolution_sessions, list) or not all(
+            isinstance(value, str) for value in resolution_sessions
+        ):
+            raise ValueError("contract calendar must contain resolution_sessions")
     if calendar_payload.get("contract_code") != contract_code:
         raise ValueError("contract calendar contract_code does not match config")
     if calendar_payload.get("calendar_id") != GC_CALENDAR_ID or calendar_payload.get(
@@ -524,7 +574,7 @@ def prepare_gc_bundle(
     run = {
         "contract_version": "0.3.0",
         "run_id": run_id,
-        "mode": "certified",
+        "mode": mode,
         "instrument": contract_code,
         "as_of": as_of,
         "data_cutoff": data_cutoff,
@@ -539,8 +589,9 @@ def prepare_gc_bundle(
             "private_raw_data": True,
         },
         "gates": {
-            key: "pass"
-            for key in (
+            **{
+                key: "pass"
+                for key in (
                 "instrument_available",
                 "licence",
                 "temporal_integrity",
@@ -551,7 +602,9 @@ def prepare_gc_bundle(
                 "event_clock",
                 "feature_snapshot_frozen",
                 "baseline_frozen",
-            )
+                )
+            },
+            "licence": "pass" if licence_verified else "unknown",
         },
         "outputs": {
             "evidence_items": None,
