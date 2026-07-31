@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 from dao_runtime.bundle import validate_bundle
 from dao_runtime.contracts import (
@@ -12,7 +13,12 @@ from dao_runtime.contracts import (
     schema_errors,
     write_json,
 )
-from dao_runtime.futures import _validate_contract_spec, prepare_gc_bundle
+from dao_runtime.futures import (
+    _copy_and_load_source,
+    _source_config,
+    _validate_contract_spec,
+    prepare_gc_bundle,
+)
 
 
 CONTRACT_CODE = "GCZ26"
@@ -256,6 +262,27 @@ def _gc_forecast(public_dir: Path) -> dict:
 
 
 class FuturesPreparationTests(unittest.TestCase):
+    def test_gc_source_without_path_is_downloaded_and_metadata_is_derived(self) -> None:
+        class Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return b'{"contract_code":"GCZ26"}'
+
+        source = {"source_locator": "https://data.example.test/gcz26.json"}
+        source = _source_config({"source_files": {"price_daily": source}}, "price_daily")
+        with tempfile.TemporaryDirectory() as temp:
+            with patch("dao_runtime.futures.urllib.request.urlopen", return_value=Response()):
+                raw_path, payload = _copy_and_load_source(source, Path(temp), "price_daily")
+            self.assertEqual(payload["contract_code"], "GCZ26")
+            self.assertTrue(raw_path.is_file())
+            self.assertIn("captured_at", source)
+            self.assertIn("available_at", source)
+
     def test_single_contract_gc_ready_bundle_passes(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
