@@ -261,8 +261,17 @@ def _download_source(source: dict[str, Any], role: str) -> bytes:
         raise ValueError(f"{role} requires an HTTPS url for automatic download")
     headers = {"Accept": "application/json", "User-Agent": "dao-certified-runtime/0.3.0"}
     env_key = source.get("token_env")
-    if isinstance(env_key, str) and os.environ.get(env_key):
-        headers["Authorization"] = f"Bearer {os.environ[env_key]}"
+    token = os.environ.get(env_key) if isinstance(env_key, str) else None
+    if not token and isinstance(env_key, str):
+        dotenv = Path.cwd() / ".env"
+        if dotenv.is_file():
+            for line in dotenv.read_text(encoding="utf-8").splitlines():
+                key, separator, value = line.strip().partition("=")
+                if separator and key.strip() == env_key:
+                    token = value.strip().strip("\"'")
+                    break
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
     try:
         with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=30) as response:
             raw = response.read()
