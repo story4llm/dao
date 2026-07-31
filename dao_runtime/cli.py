@@ -9,6 +9,7 @@ from pathlib import Path
 from .bundle import validate_bundle
 from .contracts import ContractError
 from .futures import prepare_gc_bundle
+from .forecast import generate_baseline_forecast
 from .oanda import prepare_private_bundle
 
 
@@ -38,6 +39,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     validate.add_argument("--run-dir", type=Path, required=True)
     validate.add_argument("--private-root", type=Path)
+    forecast = commands.add_parser(
+        "generate-baseline-forecast",
+        help="emit a deterministic five-session Forecast Contract from a ready run",
+    )
+    forecast.add_argument("--run-dir", type=Path, required=True)
     return parser
 
 
@@ -68,6 +74,9 @@ def main(argv: list[str] | None = None) -> int:
                 private_root=args.private_root.resolve() if args.private_root else None,
             )
             print("bundle validation passed")
+        elif args.command == "generate-baseline-forecast":
+            path = generate_baseline_forecast(args.run_dir.resolve())
+            print(f"forecast: {path}")
         return 0
     except (
         ContractError,

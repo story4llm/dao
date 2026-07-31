@@ -10,6 +10,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 from dao_runtime.bundle import validate_bundle
+from dao_runtime.contracts import load_json, validate_document
+from dao_runtime.forecast import generate_baseline_forecast
 from dao_runtime.oanda import (
     _contains_placeholder,
     _copy_official_snapshot,
@@ -167,6 +169,10 @@ class OandaPreparationTests(unittest.TestCase):
                 ),
             ):
                 prepare_private_bundle(config_path, public_dir, private_dir)
+                forecast_path = generate_baseline_forecast(public_dir)
+                validate_document(
+                    load_json(forecast_path), "forecast", "forecast-contract.json"
+                )
 
             generated_run = json.loads((public_dir / "run.json").read_text())
             self.assertEqual(generated_run["mode"], "automated")

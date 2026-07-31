@@ -28,4 +28,5 @@ updated_at: 2026-07-31
 - [x] 默认 `automated` 模式；OANDA/GC 许可信息不再是启动阻断。
 - [x] GC `source_files` 支持 `url`/`source_locator` 自动下载，并兼容离线 `path`。
 - [x] GC `as_of`、`data_cutoff`、`resolution_sessions` 和自动下载源的抓取时间可由运行器生成。
+- [x] 新增 `generate-baseline-forecast`，从 ready bundle 自动生成通过 Forecast Contract schema 的五 session 概率预测。
 - [x] Schema、运行手册和测试已同步；`make validate` 通过。

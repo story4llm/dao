@@ -96,7 +96,7 @@ make validate
 1. 在许可人的本地环境安装运行包并填写一次性许可声明；`prepare-*` 会从白名单官方 HTTPS 地址自动下载三类宏观/事件快照到 gitignored private root。
 2. XAU/USD 使用 `prepare-oanda`；单月 COMEX GC 使用 `prepare-gc`，默认由 Agent 根据 source URL 自动下载合约、日历、日结算和 H4 数据。API 凭据只放在本地环境，不要把完整行情放入聊天或仓库。
 3. 用 `validate-bundle --private-root ...` 验证 Schema、时间、概率、引用和真实文件哈希。
-4. 让本地 AI 读取 `AGENTS.md` 与 `prompts/daily-cognition-run-v0.3.md`，生成 Evidence、MCF 与 Forecast。
+4. 执行 `generate-baseline-forecast --run-dir ...` 生成冻结基线 Forecast Contract，再让本地 AI 读取 `AGENTS.md` 与 `prompts/daily-cognition-run-v0.3.md`，补充 Evidence、MCF 与解释。
 5. completed run 必须再次通过同一 bundle 校验；任一核心门失败时输出 blocked/Q0 并预测弃权。
 
 可直接复制的完整调用方式见[每日运行手册](docs/harness/DAILY_RUNBOOK.md)。

@@ -95,6 +95,8 @@ OANDA/CME 私有证据不得作为不符合数据许可的云端会话附件。�
 12. **Revalidate**：completed run 再次通过标准 Schema 与跨文件硬门。
 13. **Resolve**：第 3 个完整交易日只诊断；第 5 个完整交易日追加正式 Resolution Record并重算评分。
 
+Agent 可先执行 `generate-baseline-forecast --run-dir <ready-run>`，由程序从冻结 Feature/Baseline 生成合法 Forecast Contract；LLM 只能解释、挑战或记录弃权，不能改写冻结概率。
+
 ## 3. Certified 与 Exploratory
 
 | 模式 | 核心证据 | 允许输出 |
