@@ -10,11 +10,23 @@ from pathlib import Path
 from unittest.mock import patch
 
 from dao_runtime.bundle import validate_bundle
-from dao_runtime.oanda import prepare_private_bundle
+from dao_runtime.oanda import _contains_placeholder, prepare_private_bundle
 from tests.test_features import synthetic_daily
 
 
 class OandaPreparationTests(unittest.TestCase):
+    def test_placeholder_check_does_not_reject_ordinary_replace_text(self) -> None:
+        self.assertFalse(
+            _contains_placeholder(
+                {"licence": {"locator": "https://legal.example.org/replace-policy"}}
+            )
+        )
+        self.assertTrue(_contains_placeholder({"name": "REPLACE with agreement name"}))
+        self.assertTrue(_contains_placeholder({"name": "REPLACE_ME"}))
+        self.assertTrue(
+            _contains_placeholder({"locator": "https://example.com/agreement"})
+        )
+
     def test_config_with_credentials_is_rejected_before_network_access(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

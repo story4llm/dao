@@ -19,9 +19,14 @@
     "provenance"
   ],
   "properties": {
-    "contract_version": {"const": "0.2.0"},
+    "contract_version": {"enum": ["0.2.0", "0.3.0"]},
     "manifest_id": {"type": "string", "minLength": 1},
-    "instrument": {"const": "XAUUSD"},
+    "instrument": {
+      "anyOf": [
+        {"const": "XAUUSD"},
+        {"type": "string", "pattern": "^GC[FGHJKMNQUVXZ][0-9]{2}$"}
+      ]
+    },
     "provider": {
       "type": "object",
       "additionalProperties": false,
@@ -29,15 +34,76 @@
         "provider_id",
         "instrument_id",
         "environment",
-        "account_instrument_verified",
         "qualification_version"
       ],
       "properties": {
-        "provider_id": {"const": "oanda-v20"},
-        "instrument_id": {"const": "XAU_USD"},
-        "environment": {"enum": ["practice", "live"]},
+        "provider_id": {"enum": ["oanda-v20", "cme-licensed-snapshot"]},
+        "instrument_id": {"type": "string", "minLength": 1},
+        "environment": {"enum": ["practice", "live", "production"]},
         "account_instrument_verified": {"const": true},
-        "qualification_version": {"const": "data-source-qualification:0.1.0"}
+        "instrument_verified": {"const": true},
+        "qualification_version": {
+          "enum": ["data-source-qualification:0.1.0", "data-source-qualification:0.2.0"]
+        }
+      }
+    },
+    "futures_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "product_code",
+        "contract_code",
+        "venue",
+        "contract_month",
+        "first_position_date",
+        "last_trade_date",
+        "contract_size_oz",
+        "tick_size",
+        "currency",
+        "price_unit",
+        "continuous",
+        "roll_policy",
+        "daily_reference_price_field",
+        "exchange_timezone",
+        "calendar_id",
+        "calendar_version",
+        "resolution_sessions",
+        "resolution_session_sequence_sha256"
+      ],
+      "properties": {
+        "product_code": {"const": "GC"},
+        "contract_code": {
+          "type": "string",
+          "pattern": "^GC[FGHJKMNQUVXZ][0-9]{2}$"
+        },
+        "venue": {"const": "COMEX"},
+        "contract_month": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
+        },
+        "first_position_date": {"type": "string", "format": "date"},
+        "last_trade_date": {"type": "string", "format": "date"},
+        "contract_size_oz": {"const": 100},
+        "tick_size": {"const": 0.1},
+        "currency": {"const": "USD"},
+        "price_unit": {"const": "troy_ounce"},
+        "continuous": {"const": false},
+        "roll_policy": {"const": "none"},
+        "daily_reference_price_field": {"const": "settlement"},
+        "exchange_timezone": {"const": "America/Chicago"},
+        "calendar_id": {"const": "cme-gc-settlement"},
+        "calendar_version": {"const": "0.1.0"},
+        "resolution_sessions": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": {"type": "string", "format": "date-time"}
+        },
+        "resolution_session_sequence_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
       }
     },
     "as_of": {"type": "string", "format": "date-time"},
@@ -120,8 +186,12 @@
       "properties": {
         "created_at": {"type": "string", "format": "date-time"},
         "created_by": {"type": "string", "minLength": 1},
-        "runtime_version": {"const": "dao-certified-runtime:0.2.0"},
-        "source_policy_version": {"const": "data-source-qualification:0.1.0"}
+        "runtime_version": {
+          "enum": ["dao-certified-runtime:0.2.0", "dao-certified-runtime:0.3.0"]
+        },
+        "source_policy_version": {
+          "enum": ["data-source-qualification:0.1.0", "data-source-qualification:0.2.0"]
+        }
       }
     }
   },
@@ -156,6 +226,7 @@
         "role": {
           "enum": [
             "instrument_spec",
+            "contract_calendar",
             "price_daily",
             "price_h4",
             "macro_rates",
@@ -194,6 +265,8 @@
             "open_time",
             "publication_time",
             "event_time",
+            "session_close",
+            "bar_start",
             "not_applicable"
           ]
         },
@@ -202,5 +275,45 @@
         "freshness_max_seconds": {"type": "integer", "minimum": 1}
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"instrument": {"const": "XAUUSD"}}},
+      "then": {
+        "properties": {
+          "contract_version": {"const": "0.2.0"},
+          "provider": {
+            "required": ["account_instrument_verified"],
+            "properties": {
+              "provider_id": {"const": "oanda-v20"},
+              "instrument_id": {"const": "XAU_USD"},
+              "environment": {"enum": ["practice", "live"]},
+              "qualification_version": {"const": "data-source-qualification:0.1.0"}
+            }
+          }
+        }
+      },
+      "else": {
+        "required": ["futures_contract"],
+        "properties": {
+          "contract_version": {"const": "0.3.0"},
+          "provider": {
+            "required": ["instrument_verified"],
+            "properties": {
+              "provider_id": {"const": "cme-licensed-snapshot"},
+              "environment": {"const": "production"},
+              "qualification_version": {"const": "data-source-qualification:0.2.0"}
+            }
+          },
+          "snapshots": {
+            "contains": {
+              "properties": {"role": {"const": "contract_calendar"}},
+              "required": ["role"]
+            },
+            "minContains": 1
+          }
+        }
+      }
+    }
+  ]
 }

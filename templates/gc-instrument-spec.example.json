@@ -1,0 +1,15 @@
+{
+  "product_code": "GC",
+  "contract_code": "GCZ26",
+  "venue": "COMEX",
+  "contract_month": "2026-12",
+  "first_position_date": "REPLACE",
+  "last_trade_date": "REPLACE",
+  "contract_size_oz": 100,
+  "tick_size": 0.1,
+  "currency": "USD",
+  "price_unit": "troy_ounce",
+  "continuous": false,
+  "roll_policy": "none"
+}
+

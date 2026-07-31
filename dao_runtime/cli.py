@@ -8,6 +8,7 @@ from pathlib import Path
 
 from .bundle import validate_bundle
 from .contracts import ContractError
+from .futures import prepare_gc_bundle
 from .oanda import prepare_private_bundle
 
 
@@ -23,6 +24,14 @@ def build_parser() -> argparse.ArgumentParser:
     prepare.add_argument("--public-dir", type=Path, required=True)
     prepare.add_argument("--private-dir", type=Path, required=True)
 
+    prepare_gc = commands.add_parser(
+        "prepare-gc",
+        help="prepare a private single-contract COMEX GC bundle",
+    )
+    prepare_gc.add_argument("--config", type=Path, required=True)
+    prepare_gc.add_argument("--public-dir", type=Path, required=True)
+    prepare_gc.add_argument("--private-dir", type=Path, required=True)
+
     validate = commands.add_parser(
         "validate-bundle",
         help="validate schemas, cross-file semantics and private hashes",
@@ -35,8 +44,13 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
-        if args.command == "prepare-oanda":
-            paths = prepare_private_bundle(
+        if args.command in {"prepare-oanda", "prepare-gc"}:
+            prepare_bundle = (
+                prepare_private_bundle
+                if args.command == "prepare-oanda"
+                else prepare_gc_bundle
+            )
+            paths = prepare_bundle(
                 args.config.resolve(),
                 args.public_dir.resolve(),
                 args.private_dir.resolve(),
@@ -55,7 +69,14 @@ def main(argv: list[str] | None = None) -> int:
             )
             print("bundle validation passed")
         return 0
-    except (ContractError, OSError, RuntimeError, ValueError) as exc:
+    except (
+        ContractError,
+        KeyError,
+        OSError,
+        RuntimeError,
+        TypeError,
+        ValueError,
+    ) as exc:
         print(f"DAO runtime failed: {exc}", file=sys.stderr)
         return 1
 

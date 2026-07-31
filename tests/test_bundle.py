@@ -395,6 +395,66 @@ def build_valid_bundle(root: Path, *, completed: bool = True) -> tuple[Path, Pat
     return run_dir, private_root
 
 
+def _resolved_record(
+    forecast: dict,
+    *,
+    reference: float,
+    diagnostic: float,
+    final: float,
+    atr: float,
+    normalized_3: float,
+    normalized_5: float,
+    outcome: str,
+) -> dict:
+    probabilities = {
+        item["outcome_id"]: item["probability"] for item in forecast["outcomes"]
+    }
+    one_hot = {
+        candidate: 1.0 if candidate == outcome else 0.0
+        for candidate in ("up", "down", "range")
+    }
+    brier = sum(
+        (probabilities[candidate] - one_hot[candidate]) ** 2
+        for candidate in one_hot
+    ) / 3.0
+    return {
+        "resolution_id": "resolution-valid",
+        "forecast_id": forecast["forecast_id"],
+        "frame_id": forecast["frame_id"],
+        "resolved_at": "2026-08-06T12:00:00Z",
+        "protocol_version": "xauusd-direction-5d:0.2.0",
+        "source_snapshot_ref": "private://resolution.json",
+        "status": "resolved",
+        "observed": {
+            "reference_close": reference,
+            "diagnostic_close_3": diagnostic,
+            "resolution_close_5": final,
+            "atr20_at_cutoff": atr,
+            "normalized_change_3": normalized_3,
+            "normalized_change_5": normalized_5,
+            "outcome_id": outcome,
+        },
+        "scoring": {
+            "eligible": True,
+            "exclusion_reasons": [],
+            "brier_multiclass": brier,
+            "log_loss": -math.log(max(probabilities[outcome], 1e-15)),
+            "baseline_brier": brier,
+            "brier_skill_score": 0.0,
+        },
+        "audit": {
+            "append_only": True,
+            "forecast_frozen_before_outcomes": True,
+            "resolver_ref": "unit-test",
+            "notes": [],
+        },
+        "provenance": {
+            "contract_version": "0.2.1",
+            "resolver_version": "resolution:0.1.0",
+        },
+    }
+
+
 class BundleValidationTests(unittest.TestCase):
     def test_valid_completed_bundle_passes(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -553,6 +613,87 @@ class BundleValidationTests(unittest.TestCase):
             )
             self.assertTrue(
                 any("brier_multiclass is not reproducible" in error for error in errors),
+                errors,
+            )
+
+    def test_resolution_boundary_classification_uses_decimal_arithmetic(self) -> None:
+        cases = (
+            ("positive", 0.1, 0.4, 0.5),
+            ("negative", 0.4, 0.1, -0.5),
+        )
+        for label, reference, final, normalized in cases:
+            with self.subTest(boundary=label), tempfile.TemporaryDirectory() as temp:
+                run_dir, private_root = build_valid_bundle(Path(temp))
+                forecast = json.loads((run_dir / "forecast-contract.json").read_text())
+                run = json.loads((run_dir / "run.json").read_text())
+                resolution = _resolved_record(
+                    forecast,
+                    reference=reference,
+                    diagnostic=reference,
+                    final=final,
+                    atr=0.6,
+                    normalized_3=0.0,
+                    normalized_5=normalized,
+                    outcome="range",
+                )
+                write_json(run_dir / "resolution-record.json", resolution)
+                run["status"] = "resolved"
+                run["outputs"]["resolution"] = "resolution-record.json"
+                write_json(run_dir / "run.json", run)
+
+                errors = validate_bundle(
+                    run_dir, private_root=private_root, raise_on_error=False
+                )
+
+                self.assertEqual(errors, [])
+
+    def test_resolved_abstained_forecast_has_explicit_error(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            run_dir, private_root = build_valid_bundle(Path(temp))
+            forecast = json.loads((run_dir / "forecast-contract.json").read_text())
+            frame = json.loads((run_dir / "market-cognition-frame.json").read_text())
+            run = json.loads((run_dir / "run.json").read_text())
+            resolution = _resolved_record(
+                forecast,
+                reference=0.1,
+                diagnostic=0.1,
+                final=0.4,
+                atr=0.6,
+                normalized_3=0.0,
+                normalized_5=0.5,
+                outcome="range",
+            )
+            forecast["forecast_abstention"] = {
+                "abstain": True,
+                "reason_codes": ["insufficient_evidence"],
+                "reason": "Synthetic abstention test.",
+            }
+            for item in forecast["outcomes"]:
+                item["probability"] = None
+            frame["abstention"]["forecast"] = {
+                "abstain": True,
+                "reason_codes": ["insufficient_evidence"],
+                "reason": "Synthetic abstention test.",
+            }
+            for item in frame["scenarios"]:
+                item["probability"] = None
+            write_json(run_dir / "forecast-contract.json", forecast)
+            write_json(run_dir / "market-cognition-frame.json", frame)
+            write_json(run_dir / "resolution-record.json", resolution)
+            run["status"] = "resolved"
+            run["outputs"]["resolution"] = "resolution-record.json"
+            write_json(run_dir / "run.json", run)
+
+            errors = validate_bundle(
+                run_dir, private_root=private_root, raise_on_error=False
+            )
+
+            self.assertIn(
+                "resolved resolution cannot score an abstained forecast",
+                errors,
+            )
+            self.assertFalse(
+                any("could not continue" in error for error in errors),
                 errors,
             )
 

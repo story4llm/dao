@@ -19,6 +19,7 @@
 - 修订数据和最终值不得穿越进入历史预测。
 - 每次运行记录 source policy 版本、去密钥请求清单、原始响应哈希和私有位置引用。
 - 冻结 Feature Snapshot 与 Baseline Snapshot，记录 C0、ATR(20)、price field、bar 边界、session sequence、历史窗口和代码版本。
+- GC run 额外冻结单一月份合约、First Position Date、Last Trade Date、settlement 字段和未来五个 CME session；禁止静默换月或未声明的连续合约。
 - 公开网页或截图只能进入 exploratory/Q0，除非其时点、bar 语义和许可另有证明。
 
 ## Gate 4：模型与概率
@@ -47,6 +48,7 @@
 - schema、示例、实现和文档保持同步。
 - 每个 JSON 实例通过标准 JSON Schema Draft 2020-12 与 date-time format 检查。
 - certified bundle 在持有原始文件的私有环境通过引用、时间、概率、哈希、冻结量和 Resolution 重算检查。
+- XAU/USD 与 GC 使用独立 protocol、价格字段和交易日历；任何跨轨 Feature/Baseline/Forecast/Resolution 引用失败。
 - 状态标注、未来概率和信念修正使用物理分离的评估记录。
 - 测试、验证脚本和人工检查通过。
 - 任务状态、项目状态和决策记录已更新。

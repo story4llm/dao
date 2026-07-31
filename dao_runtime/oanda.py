@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import urllib.error
 import urllib.parse
@@ -31,6 +32,11 @@ OANDA_BASES = {
     "live": "https://api-fxtrade.oanda.com",
 }
 OFFICIAL_ROLES = {"macro_rates", "macro_usd", "event_clock"}
+PLACEHOLDER_PATTERN = re.compile(r"\bREPLACE(?:_ME)?\b")
+EXAMPLE_DOMAIN_PATTERN = re.compile(
+    r"(?:^|[/:.@])example\.com(?:[/:?#]|$)",
+    re.IGNORECASE,
+)
 
 
 def utc_now() -> datetime:
@@ -100,6 +106,19 @@ def _contains_sensitive_config_key(value: Any) -> bool:
         return any(_contains_sensitive_config_key(item) for item in value)
     elif isinstance(value, str) and value.lower().startswith("bearer "):
         return True
+    return False
+
+
+def _contains_placeholder(value: Any) -> bool:
+    if isinstance(value, dict):
+        return any(_contains_placeholder(nested) for nested in value.values())
+    if isinstance(value, list):
+        return any(_contains_placeholder(item) for item in value)
+    if isinstance(value, str):
+        return bool(
+            PLACEHOLDER_PATTERN.search(value)
+            or EXAMPLE_DOMAIN_PATTERN.search(value)
+        )
     return False
 
 
@@ -233,7 +252,6 @@ def prepare_private_bundle(
             "OANDA_API_TOKEN and OANDA_ACCOUNT_ID must be set in the local environment"
         )
     config = load_json(config_path)
-    serialized_config = json.dumps(config, ensure_ascii=False).lower()
     if _contains_sensitive_config_key(config):
         raise ValueError("credentials must not appear in the bundle config")
     run_id = config.get("run_id")
@@ -259,7 +277,7 @@ def prepare_private_bundle(
         or licence.get("accepted_by_account_holder") is not True
     ):
         raise ValueError("licence attestation does not permit certified internal use")
-    if "replace" in serialized_config or "example.com" in serialized_config:
+    if _contains_placeholder(config):
         raise ValueError("example placeholders cannot be used for a certified bundle")
     official_items = config.get("official_snapshots", [])
     roles = [item.get("role") for item in official_items]

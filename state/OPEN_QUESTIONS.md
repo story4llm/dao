@@ -3,11 +3,11 @@
 ## 已决产品问题
 
 - 第一位用户：内部趋势研究者。
-- 首要场景：XAU/USD 日线/4 小时的每日离线认知帧。
+- 首要场景：XAU/USD 与单一明确月份 COMEX GC 的日线/H4每日离线认知帧。
 - 产品重心：可证伪、可修正的趋势认知，不输出买卖点位和仓位。
 - 对外措辞：使用“研究状态”和“重新评估”，不展示交易动作。
 
-详见 `docs/product/prd-v0.1.md` 与 ADR-0002。
+详见 `docs/product/prd-v0.2.md`、ADR-0002 与 ADR-0006。
 
 ## 认知契约
 
@@ -26,18 +26,21 @@
 
 ## 数据
 
-- 第一研究轨已确定为 provider-qualified XAU/USD；GC 作为后续独立研究轨，不在同一 Forecast Contract 混用。
+- 第一研究轨为 provider-qualified XAU/USD；第二研究轨为单一明确月份 GC，两者不在同一 Forecast Contract 混用。
 - OANDA REST v20 已被选为首期条件通过价格源；原始数据只允许账户持有人内部运行，不进入公开 GitHub。
 - 政府宏观与事件证据优先直接使用 Treasury、Federal Reserve、BLS、BEA 和 CFTC 原始来源。
 - FRED/ALFRED 当前条款与 DAO 的 AI 运行方式不兼容，不作为运行数据源。
 - GitHub 保存规则、证据清单、哈希和派生认知；许可受限原始行情保存在私有运行环境。
+- GC 第一版固定 `settlement`、不换月、`continuous=false`，并冻结 First Position/Last Trade Date 与五-session 日历哈希。
 
 仍待解决：
 
 - 用户实际 OANDA/等价账户所在地区是否提供 `XAU_USD`，接受的协议版本是什么？
+- 用户实际 GC 数据来源、entitlement/ILA、供应商字段映射和私有留存周期是什么？
 - 首个 evidence bundle 的私有存储位置和保留周期是什么？
 - 首期冻结字段已定为 OANDA midpoint `mid.c`，日线边界固定为 `America/New_York` 17:00。
 - 第 5 个完整交易日按本次冻结的 OANDA complete daily session sequence 计数；仍需用首个真实 run 验证假日异常处理。
+- GC 单月历史在流动性生命周期内能否提供足够、稳定的 252 个已解析 origin？
 - 新闻、讲话和经济日历如何获得可靠的首次发布时间？
 - 政府数据未来页面快照如何自动留存，且不依赖条款不兼容的聚合服务？
 

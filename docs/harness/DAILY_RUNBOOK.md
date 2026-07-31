@@ -1,10 +1,10 @@
 # 每日黄金趋势认知运行手册
 
-本手册定义用户如何让 AI 读取 GitHub Harness，并执行一次 XAU/USD 趋势认知。它不要求建设前端，也不连接交易账户下单。
+本手册定义用户如何让 AI 读取 GitHub Harness，并执行一次 XAU/USD 或单月 COMEX GC 趋势认知。两个研究轨使用独立价格字段、交易日历和解析协议；本系统不连接交易账户下单。
 
 ## 0. 运行边界与本地准备
 
-OANDA token、account ID、原始响应和完整 candle 序列只能进入账户持有人的私有运行环境。不要把它们粘贴到聊天、命令参数、GitHub Issue 或公开仓库。
+OANDA token、account ID、CME entitlement、原始响应和完整价格序列只能进入数据权利人的私有运行环境。不要把它们粘贴到聊天、命令参数、GitHub Issue 或公开仓库。
 
 安装：
 
@@ -14,7 +14,7 @@ python3 -m venv .venv
 python -m pip install -e .
 ```
 
-复制 `templates/private-bundle-config.example.json` 到仓库外，填写账户实际接受的区域协议，以及本次已经冻结的 Treasury、Federal Reserve H.10 和未来五个交易日事件时钟文件。示例中的 `REPLACE` 或 `example.com` 会被程序拒绝。
+XAU/USD 复制 `templates/private-bundle-config.example.json`；GC 复制 `templates/private-gc-bundle-config.example.json`。在仓库外填写实际协议和本次冻结的官方宏观/事件文件。示例中的 `REPLACE` 或 `example.com` 会被程序拒绝。
 
 在本地交互式输入凭据，避免把值留在 shell history：
 
@@ -36,6 +36,19 @@ python -m dao_runtime.cli prepare-oanda \
 
 程序会先通过账户 instruments endpoint 确认实际存在 `XAU_USD`，再采集 midpoint D/H4，私有保存 provider 原始响应和 complete-only 规范化响应，冻结 C0、ATR(20)、bar 边界、session sequence hash 与历史频率基线。任何凭据都不会写入产物。
 
+### 0.1 单月 COMEX GC
+
+先把获许可的供应商文件在私有环境转换为模板定义的 JSON。必须是一个明确月份（如 `GCZ26`），不能是连续合约。日线至少 278 条并含 `settlement`，H4 至少 30 条；另提供合约规格和未来五个 CME session 日历快照。
+
+```bash
+python -m dao_runtime.cli prepare-gc \
+  --config /private/path/private-gc-bundle-config.json \
+  --private-dir /private/path/runtime/private/run-YYYYMMDD-gcz26 \
+  --public-dir runs/YYYY/MM/DD/run-YYYYMMDD-gcz26
+```
+
+程序核验 100 oz、0.10 美元 tick、First Position Date、Last Trade Date、`continuous=false` 和五-session 窗口，再用 daily settlement 冻结 C0、ATR(20) 与同轨历史频率基线。它不会自动下载 CME 数据、选择主力或换月。
+
 ## 1. 一次运行的输入
 
 AI 必须同时获得两类输入：
@@ -46,27 +59,25 @@ AI 必须同时获得两类输入：
 
 - `AGENTS.md`
 - `state/PROJECT_STATE.md`
-- `prompts/daily-cognition-run-v0.2.md`
-- `docs/data/data-source-qualification-matrix-v0.1.md`
-- `evals/evaluation-contract-v0.2.md`
+- `prompts/daily-cognition-run-v0.3.md`
+- `docs/data/data-source-qualification-matrix-v0.2.md`
+- `evals/evaluation-contract-v0.3.md`
 - Evidence Manifest、Feature、Baseline、Evidence、MCF、Forecast、Delta、Resolution schema
 
 ### 私有证据包
 
 最小覆盖：
 
-- XAU/USD 完整日线至少 60 个交易日。
-- XAU/USD 完整 4 小时 bar 至少 30 条。
-- 账户 instruments endpoint 返回 `XAU_USD` 的私有快照。
+- XAU/USD 使用完整日线/H4和账户 instruments 快照；GC 使用至少 278 条同月 daily settlement、30 条同月 H4、合约规格和合约日历快照。
 - 去密钥请求清单、抓取时间、响应哈希和 provider。
 - 截止时点前最新可得的实际利率/名义利率与美元环境证据。
 - 未来 5 个交易日已知重大事件时钟。
-- 由程序生成的 Feature Snapshot，冻结 C0、ATR(20)、price field、NY17 日线边界与 session sequence hash。
+- 由程序生成的 Feature Snapshot，冻结 C0、ATR(20)、price field、对应日线边界与 session sequence hash。
 - 由程序生成的 Baseline Snapshot，至少包含 252 个已解析历史 origin；缺失时预测必须弃权。
 
-OANDA 私有证据不得作为不符合区域数据许可的云端会话附件。它只能由有权限的本地 Agent 从私有目录读取；云端 AI 仅可读取许可允许的派生记录。不得把 token 发在聊天中。
+OANDA/CME 私有证据不得作为不符合数据许可的云端会话附件。它只能由有权限的本地 Agent 从私有目录读取；云端 AI 仅可读取许可允许的派生记录。不得把凭据发在聊天中。
 
-清单结构以 `schemas/evidence-manifest.schema.json` 为准，必须由 `prepare-oanda` 根据真实文件生成，不再允许手工复制 manifest 模板。
+清单结构以 `schemas/evidence-manifest.schema.json` 为准，必须由对应 prepare 命令根据真实文件生成，不再允许手工复制 manifest 模板。
 
 ## 2. 标准运行顺序
 
@@ -99,12 +110,13 @@ OANDA 私有证据不得作为不符合区域数据许可的云端会话附件�
 
 ```text
 读取 story4llm/dao 的 AGENTS.md、
-prompts/daily-cognition-run-v0.2.md 和其中列出的最小上下文。
+prompts/daily-cognition-run-v0.3.md 和其中列出的最小上下文。
 
-以本地 ready run 与对应 private root 执行一次 XAU/USD 每日趋势认知：
+以本地 ready run 与对应 private root 执行一次黄金每日趋势认知：
 - mode: certified
 - horizon: 截止后第 5 个完整交易日
 - 日线为主，4 小时辅助
+- 轨道、合约、price field 和 protocol 完全采用 ready run，不跨轨替换
 
 先执行 validate-bundle，再生成 Market Cognition Frame、Forecast Contract；
 若存在上一帧则生成 Cognition Delta。严格使用 data_cutoff 前证据，

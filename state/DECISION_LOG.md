@@ -9,3 +9,4 @@
 | 2026-07-30 | 分离状态认知、未来概率与信念修正评估 | Accepted | [ADR-0003](../docs/decisions/ADR-0003-separate-state-forecast-and-revision-evaluation.md) |
 | 2026-07-30 | GitHub Harness 与许可受限私有证据分层运行 | Accepted | [ADR-0004](../docs/decisions/ADR-0004-github-harness-private-evidence-runtime.md) |
 | 2026-07-30 | Certified 由标准 Schema 与跨文件程序共同判定 | Accepted | [ADR-0005](../docs/decisions/ADR-0005-machine-enforced-certified-runtime.md) |
+| 2026-07-31 | 以单一明确月份合约建立独立 COMEX GC 研究轨 | Accepted | [ADR-0006](../docs/decisions/ADR-0006-separate-comex-gc-contract-track.md) |

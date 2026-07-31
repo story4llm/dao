@@ -17,8 +17,8 @@ entrypoints:
   agent: AGENTS.md
   state: state/PROJECT_STATE.md
   context_map: docs/harness/CONTEXT_MAP.md
-  daily_run: prompts/daily-cognition-run-v0.2.md
-  source_policy: docs/data/data-source-qualification-matrix-v0.1.md
+  daily_run: prompts/daily-cognition-run-v0.3.md
+  source_policy: docs/data/data-source-qualification-matrix-v0.2.md
 
 commands:
   validate: python3 scripts/validate_harness.py
