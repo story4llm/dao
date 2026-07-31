@@ -10,11 +10,57 @@ from pathlib import Path
 from unittest.mock import patch
 
 from dao_runtime.bundle import validate_bundle
-from dao_runtime.oanda import prepare_private_bundle
+from dao_runtime.contracts import load_json, validate_document
+from dao_runtime.forecast import generate_baseline_forecast
+from dao_runtime.oanda import (
+    _contains_placeholder,
+    _copy_official_snapshot,
+    _request_official,
+    prepare_private_bundle,
+)
 from tests.test_features import synthetic_daily
 
 
 class OandaPreparationTests(unittest.TestCase):
+    def test_official_snapshot_missing_path_is_downloaded_from_allowlisted_source(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            private_dir = Path(temp)
+            item = {
+                "role": "macro_rates",
+                "source_locator": "https://home.treasury.gov/official.xml",
+                "observed_at": "2026-07-30T00:00:00Z",
+                "source_timezone": "America/New_York",
+                "timestamp_semantics": "publication_time",
+                "freshness_max_seconds": 345600,
+            }
+            with (
+                patch("dao_runtime.oanda._request_official", return_value=b"<feed/>"),
+                patch(
+                    "dao_runtime.oanda.utc_now",
+                    return_value=datetime(2026, 7, 30, 12, 0, tzinfo=timezone.utc),
+                ),
+            ):
+                snapshot = _copy_official_snapshot(item, private_dir)
+            self.assertEqual(snapshot["available_at"], "2026-07-30T12:00:00.000000Z")
+            self.assertTrue((private_dir / "official-macro_rates.xml").is_file())
+            self.assertEqual(snapshot["bytes"], 7)
+
+    def test_official_snapshot_rejects_non_official_source(self) -> None:
+        with self.assertRaisesRegex(ValueError, "not allowlisted"):
+            _request_official("https://example.org/snapshot.json")
+
+    def test_placeholder_check_does_not_reject_ordinary_replace_text(self) -> None:
+        self.assertFalse(
+            _contains_placeholder(
+                {"licence": {"locator": "https://legal.example.org/replace-policy"}}
+            )
+        )
+        self.assertTrue(_contains_placeholder({"name": "REPLACE with agreement name"}))
+        self.assertTrue(_contains_placeholder({"name": "REPLACE_ME"}))
+        self.assertTrue(
+            _contains_placeholder({"locator": "https://example.com/agreement"})
+        )
+
     def test_config_with_credentials_is_rejected_before_network_access(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -101,6 +147,8 @@ class OandaPreparationTests(unittest.TestCase):
                     for role in ("macro_rates", "macro_usd", "event_clock")
                 ],
             }
+            # Automated mode must run with no repeated licence form.
+            config.pop("licence")
             config_path = root / "config.json"
             config_path.write_text(json.dumps(config), encoding="utf-8")
             public_dir = root / "public"
@@ -121,6 +169,14 @@ class OandaPreparationTests(unittest.TestCase):
                 ),
             ):
                 prepare_private_bundle(config_path, public_dir, private_dir)
+                forecast_path = generate_baseline_forecast(public_dir)
+                validate_document(
+                    load_json(forecast_path), "forecast", "forecast-contract.json"
+                )
+
+            generated_run = json.loads((public_dir / "run.json").read_text())
+            self.assertEqual(generated_run["mode"], "automated")
+            self.assertEqual(generated_run["gates"]["licence"], "unknown")
 
             public_text = "\n".join(
                 path.read_text(encoding="utf-8")

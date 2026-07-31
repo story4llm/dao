@@ -5,7 +5,8 @@
 当前 M1 入口：
 
 - [金标准趋势认知标注指南 v0.1](gold-standard-annotation-guide-v0.1.md)
-- [评估契约 v0.2](evaluation-contract-v0.2.md)
+- [评估契约 v0.3](evaluation-contract-v0.3.md)
+- [评估契约 v0.2（XAU/USD 原协议）](evaluation-contract-v0.2.md)
 - [五类 Q0 协议试标](pilots/README.md)
 - [试标发现](pilots/pilot-findings.md)
 

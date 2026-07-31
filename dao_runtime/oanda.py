@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import urllib.error
 import urllib.parse
@@ -31,10 +32,36 @@ OANDA_BASES = {
     "live": "https://api-fxtrade.oanda.com",
 }
 OFFICIAL_ROLES = {"macro_rates", "macro_usd", "event_clock"}
+OFFICIAL_HOSTS = {"home.treasury.gov", "federalreserve.gov", "www.federalreserve.gov"}
+PLACEHOLDER_PATTERN = re.compile(r"\bREPLACE(?:_ME)?\b")
+EXAMPLE_DOMAIN_PATTERN = re.compile(
+    r"(?:^|[/:.@])example\.com(?:[/:?#]|$)",
+    re.IGNORECASE,
+)
 
 
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _load_local_env(config_path: Path) -> None:
+    """Load only the two expected credentials from a nearby gitignored .env."""
+    candidates = [Path.cwd() / ".env", config_path.resolve().parent / ".env"]
+    for candidate in candidates:
+        if not candidate.is_file():
+            continue
+        for line in candidate.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#") or "=" not in stripped:
+                continue
+            key, value = stripped.split("=", 1)
+            key = key.strip()
+            if key not in {"OANDA_API_TOKEN", "OANDA_ACCOUNT_ID"}:
+                continue
+            value = value.strip().strip("\"'")
+            if value:
+                os.environ.setdefault(key, value)
+        return
 
 
 def _request_json(url: str, token: str) -> tuple[bytes, dict[str, Any], str | None]:
@@ -77,6 +104,32 @@ def _write_raw(path: Path, payload: bytes) -> None:
         handle.write(payload)
 
 
+def _request_official(url: str) -> bytes:
+    """Fetch one configured official source without allowing arbitrary URLs."""
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme != "https" or parsed.hostname not in OFFICIAL_HOSTS:
+        raise ValueError(f"official snapshot URL is not allowlisted: {url}")
+    request = urllib.request.Request(
+        url,
+        headers={
+            "Accept": "application/xml,text/html,application/json;q=0.9,*/*;q=0.1",
+            "User-Agent": "dao-certified-runtime/0.2.0 (official-snapshot-collector)",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            raw = response.read()
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(
+            f"official snapshot request failed with HTTP {exc.code}: {url}"
+        ) from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f"official snapshot request failed: {url}") from exc
+    if not raw.strip():
+        raise RuntimeError(f"official snapshot response was empty: {url}")
+    return raw
+
+
 def _contains_sensitive_config_key(value: Any) -> bool:
     if isinstance(value, dict):
         for key, nested in value.items():
@@ -100,6 +153,19 @@ def _contains_sensitive_config_key(value: Any) -> bool:
         return any(_contains_sensitive_config_key(item) for item in value)
     elif isinstance(value, str) and value.lower().startswith("bearer "):
         return True
+    return False
+
+
+def _contains_placeholder(value: Any) -> bool:
+    if isinstance(value, dict):
+        return any(_contains_placeholder(nested) for nested in value.values())
+    if isinstance(value, list):
+        return any(_contains_placeholder(item) for item in value)
+    if isinstance(value, str):
+        return bool(
+            PLACEHOLDER_PATTERN.search(value)
+            or EXAMPLE_DOMAIN_PATTERN.search(value)
+        )
     return False
 
 
@@ -179,18 +245,33 @@ def _copy_official_snapshot(
     role = item.get("role")
     if role not in OFFICIAL_ROLES:
         raise ValueError(f"unsupported official snapshot role: {role}")
+    source_locator = item.get("source_locator")
     source_path = Path(str(item.get("path", ""))).expanduser().resolve()
-    if not source_path.is_file():
-        raise ValueError(f"official snapshot file does not exist: {source_path}")
-    destination = private_dir / f"official-{role}{source_path.suffix or '.snapshot'}"
-    shutil.copyfile(source_path, destination)
-    captured_at = item.get("captured_at")
-    available_at = item.get("available_at")
-    observed_at = item.get("observed_at", available_at)
-    if not all(
-        isinstance(value, str) for value in (captured_at, available_at, observed_at)
-    ):
-        raise ValueError(f"{role} requires captured_at, available_at and observed_at")
+    auto_download = item.get("auto_download", not source_path.is_file())
+    if auto_download:
+        if not isinstance(source_locator, str) or not source_locator:
+            raise ValueError(f"{role} requires source_locator for auto-download")
+        raw = _request_official(source_locator)
+        suffix = Path(urllib.parse.urlparse(source_locator).path).suffix or ".snapshot"
+        destination = private_dir / f"official-{role}{suffix}"
+        _write_raw(destination, raw)
+        captured_at = format_datetime(utc_now())
+        available_at = captured_at
+        observed_at = item.get("observed_at", captured_at)
+    else:
+        if not source_path.is_file():
+            raise ValueError(f"official snapshot file does not exist: {source_path}")
+        destination = private_dir / f"official-{role}{source_path.suffix or '.snapshot'}"
+        shutil.copyfile(source_path, destination)
+        captured_at = item.get("captured_at")
+        available_at = item.get("available_at")
+        observed_at = item.get("observed_at", available_at)
+        if not all(
+            isinstance(value, str) for value in (captured_at, available_at, observed_at)
+        ):
+            raise ValueError(f"{role} requires captured_at, available_at and observed_at")
+    if not isinstance(observed_at, str):
+        raise ValueError(f"{role} requires observed_at")
     freshness_max_seconds = int(item.get("freshness_max_seconds", 0))
     if freshness_max_seconds <= 0:
         raise ValueError(f"{role} requires positive freshness_max_seconds")
@@ -201,7 +282,7 @@ def _copy_official_snapshot(
         "request_locator_redacted": item.get("request_locator_redacted")
         or item.get("source_locator"),
         "request_id": None,
-        "source_locator": item["source_locator"],
+        "source_locator": source_locator,
         "captured_at": captured_at,
         "available_at": available_at,
         "sha256": sha256_file(destination),
@@ -226,6 +307,7 @@ def prepare_private_bundle(
 ) -> dict[str, Path]:
     """Collect account-scoped OANDA data and emit a ready certified skeleton."""
 
+    _load_local_env(config_path)
     token = os.environ.get("OANDA_API_TOKEN")
     account_id = os.environ.get("OANDA_ACCOUNT_ID")
     if not token or not account_id:
@@ -233,7 +315,6 @@ def prepare_private_bundle(
             "OANDA_API_TOKEN and OANDA_ACCOUNT_ID must be set in the local environment"
         )
     config = load_json(config_path)
-    serialized_config = json.dumps(config, ensure_ascii=False).lower()
     if _contains_sensitive_config_key(config):
         raise ValueError("credentials must not appear in the bundle config")
     run_id = config.get("run_id")
@@ -242,6 +323,9 @@ def prepare_private_bundle(
     environment = config.get("environment")
     if environment not in OANDA_BASES:
         raise ValueError("config.environment must be practice or live")
+    mode = config.get("mode", "automated")
+    if mode not in {"automated", "certified"}:
+        raise ValueError("config.mode must be automated or certified")
     licence = config.get("licence", {})
     required_licence = {
         "name",
@@ -252,14 +336,23 @@ def prepare_private_bundle(
         "accepted_by_account_holder",
         "verified_at",
     }
-    if required_licence - set(licence):
-        raise ValueError("licence attestation is incomplete")
-    if (
-        licence.get("usage_scope") != "internal_evaluation"
-        or licence.get("accepted_by_account_holder") is not True
-    ):
-        raise ValueError("licence attestation does not permit certified internal use")
-    if "replace" in serialized_config or "example.com" in serialized_config:
+    licence_verified = not (required_licence - set(licence)) and (
+        licence.get("usage_scope") == "internal_evaluation"
+        and licence.get("accepted_by_account_holder") is True
+    )
+    if mode == "certified" and not licence_verified:
+        raise ValueError("certified mode requires a complete licence attestation")
+    if not licence_verified:
+        licence = {
+            "name": "not provided by caller",
+            "region_or_entity": "unknown",
+            "version_or_effective_date": "unknown",
+            "locator": "about:blank",
+            "usage_scope": "unknown",
+            "accepted_by_account_holder": False,
+            "verified_at": format_datetime(utc_now()),
+        }
+    if _contains_placeholder(config):
         raise ValueError("example placeholders cannot be used for a certified bundle")
     official_items = config.get("official_snapshots", [])
     roles = [item.get("role") for item in official_items]
@@ -412,7 +505,7 @@ def prepare_private_bundle(
     run = {
         "contract_version": "0.2.0",
         "run_id": run_id,
-        "mode": "certified",
+        "mode": mode,
         "instrument": "XAUUSD",
         "as_of": as_of,
         "data_cutoff": data_cutoff,
@@ -428,7 +521,7 @@ def prepare_private_bundle(
         },
         "gates": {
             "instrument_available": "pass",
-            "licence": "pass",
+                "licence": "pass" if licence_verified else "unknown",
             "temporal_integrity": "pass",
             "bar_semantics": "pass",
             "completeness": "pass",

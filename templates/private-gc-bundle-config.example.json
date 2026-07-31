@@ -1,0 +1,96 @@
+{
+  "run_id": "REPLACE",
+  "mode": "automated",
+  "contract_code": "GCZ26",
+  "as_of": "REPLACE",
+  "data_cutoff": "REPLACE",
+  "resolution_sessions": [
+    "REPLACE",
+    "REPLACE",
+    "REPLACE",
+    "REPLACE",
+    "REPLACE"
+  ],
+  "previous_frame": null,
+  "licence": {
+    "name": "REPLACE with the actual CME/vendor agreement",
+    "region_or_entity": "REPLACE",
+    "version_or_effective_date": "REPLACE",
+    "locator": "https://example.com/REPLACE",
+    "usage_scope": "internal_evaluation",
+    "accepted_by_account_holder": false,
+    "verified_at": "REPLACE"
+  },
+  "source_files": {
+    "instrument_spec": {
+      "path": "REPLACE",
+      "source_locator": "REPLACE",
+      "captured_at": "REPLACE",
+      "available_at": "REPLACE",
+      "source_timezone": "America/Chicago",
+      "freshness_max_seconds": 86400
+    },
+    "contract_calendar": {
+      "path": "REPLACE",
+      "source_locator": "REPLACE",
+      "captured_at": "REPLACE",
+      "available_at": "REPLACE",
+      "source_timezone": "America/Chicago",
+      "freshness_max_seconds": 86400
+    },
+    "price_daily": {
+      "path": "REPLACE",
+      "source_locator": "REPLACE",
+      "captured_at": "REPLACE",
+      "available_at": "REPLACE",
+      "source_timezone": "America/Chicago",
+      "freshness_max_seconds": 86400
+    },
+    "price_h4": {
+      "path": "REPLACE",
+      "source_locator": "REPLACE",
+      "captured_at": "REPLACE",
+      "available_at": "REPLACE",
+      "source_timezone": "America/Chicago",
+      "freshness_max_seconds": 21600
+    }
+  },
+  "official_snapshots": [
+    {
+      "role": "macro_rates",
+      "path": "REPLACE",
+      "source_locator": "REPLACE",
+      "captured_at": "REPLACE",
+      "available_at": "REPLACE",
+      "observed_at": "REPLACE",
+      "source_timezone": "UTC",
+      "timestamp_semantics": "publication_time",
+      "record_count": 1,
+      "freshness_max_seconds": 345600
+    },
+    {
+      "role": "macro_usd",
+      "path": "REPLACE",
+      "source_locator": "REPLACE",
+      "captured_at": "REPLACE",
+      "available_at": "REPLACE",
+      "observed_at": "REPLACE",
+      "source_timezone": "UTC",
+      "timestamp_semantics": "publication_time",
+      "record_count": 1,
+      "freshness_max_seconds": 345600
+    },
+    {
+      "role": "event_clock",
+      "path": "REPLACE",
+      "source_locator": "REPLACE",
+      "captured_at": "REPLACE",
+      "available_at": "REPLACE",
+      "observed_at": "REPLACE",
+      "source_timezone": "UTC",
+      "timestamp_semantics": "event_time",
+      "record_count": 1,
+      "freshness_max_seconds": 345600
+    }
+  ]
+}

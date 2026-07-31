@@ -15,15 +15,15 @@ DAO（道）是一个面向黄金市场的 AI 趋势认知项目。它把中国�
 
 ## 当前阶段
 
-仓库目前处于 `runtime-readiness` 阶段：研究、认知和评估契约已经形成，标准 Schema、跨文件硬门、OANDA 私有准备器与 Feature/Baseline 冻结已经落地。当前重心是在账户持有人本地环境执行第一份真实、可回放的 XAU/USD 认知帧，而不是建设前端或自动交易代码。
+仓库目前处于 `runtime-readiness` 阶段：研究、认知和评估契约已经形成，标准 Schema、跨文件硬门、OANDA XAU/USD 与单月 COMEX GC 私有准备器、Feature/Baseline 冻结已经落地。当前重心是在数据权利人的本地环境执行真实、可回放的认知帧，而不是建设前端或自动交易代码。
 
 核心研究报告：
 
 - [《从易经“观变”到 AI 黄金趋势智能系统》](docs/research/system-design.md)
-- [产品需求文档 v0.1](docs/product/prd-v0.1.md)
+- [产品需求文档 v0.2](docs/product/prd-v0.2.md)
 - [AI 趋势认知规格 v0.1](docs/product/trend-cognition-spec-v0.1.md)
-- [评估契约 v0.2](evals/evaluation-contract-v0.2.md)
-- [数据源资格矩阵 v0.1](docs/data/data-source-qualification-matrix-v0.1.md)
+- [评估契约 v0.3](evals/evaluation-contract-v0.3.md)
+- [数据源资格矩阵 v0.2](docs/data/data-source-qualification-matrix-v0.2.md)
 - [每日运行手册](docs/harness/DAILY_RUNBOOK.md)
 
 ## Harness 如何工作
@@ -51,7 +51,7 @@ flowchart TD
 | [工作流](docs/harness/WORKFLOW.md) | 从立项到提交的标准循环 |
 | [质量门](docs/harness/QUALITY_GATES.md) | 研究、数据、模型和输出的验收标准 |
 | [每日运行手册](docs/harness/DAILY_RUNBOOK.md) | 让 AI 读取 Harness 并执行一次认知运行 |
-| [每日运行 Prompt](prompts/daily-cognition-run-v0.2.md) | AI 的固定执行协议 |
+| [每日运行 Prompt](prompts/daily-cognition-run-v0.3.md) | AI 的固定执行协议 |
 | [项目状态](state/PROJECT_STATE.md) | 当前进展、下一步与阻塞项 |
 | [任务模板](tasks/TEMPLATE.md) | 每项工作的范围与完成定义 |
 
@@ -93,10 +93,10 @@ make validate
 
 ## 执行一次黄金趋势认知
 
-1. 在许可人的本地环境安装运行包并准备三类官方宏观/事件快照。
-2. 通过 `prepare-oanda` 从环境变量读取 OANDA token/account ID，生成私有原始文件与公开 ready run；不要把凭据放入参数、聊天或仓库。
+1. 在许可人的本地环境安装运行包并填写一次性许可声明；`prepare-*` 会从白名单官方 HTTPS 地址自动下载三类宏观/事件快照到 gitignored private root。
+2. XAU/USD 使用 `prepare-oanda`；单月 COMEX GC 使用 `prepare-gc`，默认由 Agent 根据 source URL 自动下载合约、日历、日结算和 H4 数据。API 凭据只放在本地环境，不要把完整行情放入聊天或仓库。
 3. 用 `validate-bundle --private-root ...` 验证 Schema、时间、概率、引用和真实文件哈希。
-4. 让本地 AI 读取 `AGENTS.md` 与 `prompts/daily-cognition-run-v0.2.md`，生成 Evidence、MCF 与 Forecast。
+4. 执行 `generate-baseline-forecast --run-dir ...` 生成冻结基线 Forecast Contract，再让本地 AI 读取 `AGENTS.md` 与 `prompts/daily-cognition-run-v0.3.md`，补充 Evidence、MCF 与解释。
 5. completed run 必须再次通过同一 bundle 校验；任一核心门失败时输出 blocked/Q0 并预测弃权。
 
 可直接复制的完整调用方式见[每日运行手册](docs/harness/DAILY_RUNBOOK.md)。
@@ -111,4 +111,4 @@ make validate
 
 ## 下一里程碑
 
-机器运行层已经完成。下一步由账户持有人在本地注入 OANDA 凭据与实际区域许可证明，冻结三类官方宏观/事件快照，执行 `prepare-oanda` 和 `validate-bundle`，再由本地 AI 生成首个真实 `certified` Q1 候选认知帧。具体见[数据源矩阵](docs/data/data-source-qualification-matrix-v0.1.md)、[每日运行手册](docs/harness/DAILY_RUNBOOK.md)与[项目状态](state/PROJECT_STATE.md)。
+双研究轨的软件运行层已经形成。下一步由数据权利人在本地填写 OANDA 或单月 GC 实际许可证明，执行相应 prepare 命令；运行器会自动下载允许的官方快照并执行 `validate-bundle`，再由本地 AI 生成真实 `certified` Q1 候选认知帧。具体见[数据源矩阵](docs/data/data-source-qualification-matrix-v0.2.md)、[每日运行手册](docs/harness/DAILY_RUNBOOK.md)与[项目状态](state/PROJECT_STATE.md)。

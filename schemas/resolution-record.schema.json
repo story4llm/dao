@@ -23,7 +23,12 @@
     "forecast_id": {"type": "string", "minLength": 1},
     "frame_id": {"type": "string", "minLength": 1},
     "resolved_at": {"type": "string", "format": "date-time"},
-    "protocol_version": {"const": "xauusd-direction-5d:0.2.0"},
+    "protocol_version": {
+      "enum": [
+        "xauusd-direction-5d:0.2.0",
+        "gc-single-contract-direction-5d:0.1.0"
+      ]
+    },
     "source_snapshot_ref": {"type": "string", "minLength": 1},
     "status": {"enum": ["resolved", "unresolvable", "not_scored"]},
     "observed": {
@@ -92,8 +97,8 @@
       "additionalProperties": false,
       "required": ["contract_version", "resolver_version"],
       "properties": {
-        "contract_version": {"const": "0.2.1"},
-        "resolver_version": {"const": "resolution:0.1.0"}
+        "contract_version": {"enum": ["0.2.1", "0.3.0"]},
+        "resolver_version": {"enum": ["resolution:0.1.0", "gc-resolution:0.1.0"]}
       }
     }
   },

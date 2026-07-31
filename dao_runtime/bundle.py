@@ -5,17 +5,20 @@ from __future__ import annotations
 import json
 import math
 import re
+from datetime import date
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
 from .contracts import (
     ContractError,
+    canonical_json_bytes,
     canonical_payload_sha256,
     load_json,
     parse_datetime,
     probability_sum_errors,
     schema_errors,
+    sha256_bytes,
     sha256_file,
     unique_outcomes_errors,
 )
@@ -37,6 +40,10 @@ SECRET_PATTERNS = (
     re.compile(r"\boanda_account_id\b", re.IGNORECASE),
     re.compile(r'"accountID"\s*:', re.IGNORECASE),
 )
+DECIMAL_TOLERANCE = Decimal("1e-9")
+GC_INSTRUMENT_PATTERN = re.compile(r"^GC[FGHJKMNQUVXZ][0-9]{2}$")
+GC_PROTOCOL_ID = "gc-single-contract-direction-5d:0.1.0"
+XAUUSD_PROTOCOL_ID = "xauusd-direction-5d:0.2.0"
 
 
 def _add_schema_errors(
@@ -142,6 +149,15 @@ def _close(left: float, right: float, tolerance: float = 1e-9) -> bool:
     return math.isclose(left, right, rel_tol=tolerance, abs_tol=tolerance)
 
 
+def _decimal_close(
+    left: Decimal,
+    right: Decimal,
+    tolerance: Decimal = DECIMAL_TOLERANCE,
+) -> bool:
+    scale = max(Decimal(1), abs(left), abs(right))
+    return abs(left - right) <= tolerance * scale
+
+
 def _validate_bundle(
     run_dir: Path,
     *,
@@ -175,6 +191,10 @@ def _validate_bundle(
     outputs = run.get("outputs", {})
     as_of = run.get("as_of")
     data_cutoff = run.get("data_cutoff")
+    instrument = run.get("instrument")
+    is_gc = isinstance(instrument, str) and bool(
+        GC_INSTRUMENT_PATTERN.fullmatch(instrument)
+    )
     if isinstance(as_of, str) and isinstance(data_cutoff, str):
         _time_leq(data_cutoff, as_of, "run.data_cutoff", errors)
 
@@ -201,6 +221,43 @@ def _validate_bundle(
             errors.append("manifest data_cutoff does not match run")
         if manifest.get("as_of") != as_of:
             errors.append("manifest as_of does not match run")
+        provider = manifest.get("provider", {})
+        if is_gc:
+            contract = manifest.get("futures_contract", {})
+            if contract.get("contract_code") != instrument:
+                errors.append("futures contract_code does not match run instrument")
+            if provider.get("instrument_id") != instrument:
+                errors.append("futures provider instrument_id does not match run")
+            sessions = contract.get("resolution_sessions", [])
+            if isinstance(sessions, list):
+                expected_session_hash = sha256_bytes(canonical_json_bytes(sessions))
+                if (
+                    contract.get("resolution_session_sequence_sha256")
+                    != expected_session_hash
+                ):
+                    errors.append("futures resolution session hash mismatch")
+                try:
+                    first_position = date.fromisoformat(
+                        contract["first_position_date"]
+                    )
+                    last_trade = date.fromisoformat(contract["last_trade_date"])
+                    parsed_sessions = [parse_datetime(value) for value in sessions]
+                    if parsed_sessions != sorted(parsed_sessions):
+                        errors.append(
+                            "futures resolution sessions must be increasing"
+                        )
+                    if any(
+                        value.date() >= first_position
+                        or value.date() >= last_trade
+                        for value in parsed_sessions
+                    ):
+                        errors.append(
+                            "futures resolution window reaches delivery lifecycle"
+                        )
+                except (KeyError, TypeError, ValueError) as exc:
+                    errors.append(f"invalid futures contract lifecycle: {exc}")
+        elif manifest.get("futures_contract") is not None:
+            errors.append("XAUUSD manifest cannot contain futures_contract")
 
         snapshots = manifest.get("snapshots", [])
         snapshot_ids = [item.get("snapshot_id") for item in snapshots]
@@ -210,6 +267,8 @@ def _validate_bundle(
         if len(roles) != len(set(roles)):
             errors.append("manifest snapshot roles must be unique")
         missing_roles = CORE_ROLES - set(roles)
+        if is_gc and "contract_calendar" not in roles:
+            missing_roles.add("contract_calendar")
         if missing_roles:
             errors.append(
                 "manifest missing certified roles: " + ", ".join(sorted(missing_roles))
@@ -303,6 +362,8 @@ def _validate_bundle(
 
     if feature is not None:
         _add_schema_errors(errors, feature, "feature", "feature-snapshot.json")
+        if feature.get("instrument") != instrument:
+            errors.append("feature instrument does not match run")
         if feature.get("data_cutoff") != data_cutoff:
             errors.append("feature data_cutoff does not match run")
         if manifest is not None and feature.get("source_manifest_id") != manifest.get(
@@ -329,6 +390,11 @@ def _validate_bundle(
 
     if baseline is not None:
         _add_schema_errors(errors, baseline, "baseline", "baseline-snapshot.json")
+        if baseline.get("instrument") != instrument:
+            errors.append("baseline instrument does not match run")
+        expected_protocol = GC_PROTOCOL_ID if is_gc else XAUUSD_PROTOCOL_ID
+        if baseline.get("protocol_id") != expected_protocol:
+            errors.append("baseline protocol does not match run instrument")
         if baseline.get("data_cutoff") != data_cutoff:
             errors.append("baseline data_cutoff does not match run")
         expected = canonical_payload_sha256(baseline, "baseline_payload_sha256")
@@ -398,6 +464,12 @@ def _validate_bundle(
             errors.append("frame instrument does not match run")
         if frame.get("data_cutoff") != data_cutoff:
             errors.append("frame data_cutoff does not match run")
+        expected_protocol = GC_PROTOCOL_ID if is_gc else XAUUSD_PROTOCOL_ID
+        if (
+            frame.get("provenance", {}).get("resolution_protocol_version")
+            != expected_protocol
+        ):
+            errors.append("frame protocol does not match run instrument")
         posterior = frame.get("state", {}).get("posterior", {})
         errors.extend(
             probability_sum_errors(
@@ -431,6 +503,14 @@ def _validate_bundle(
 
     if forecast is not None:
         _add_schema_errors(errors, forecast, "forecast", "forecast-contract.json")
+        if forecast.get("instrument") != instrument:
+            errors.append("forecast instrument does not match run")
+        expected_protocol = GC_PROTOCOL_ID if is_gc else XAUUSD_PROTOCOL_ID
+        if (
+            forecast.get("resolution_rule", {}).get("protocol_id")
+            != expected_protocol
+        ):
+            errors.append("forecast protocol does not match run instrument")
         if frame is not None and forecast.get("frame_id") != frame.get("frame_id"):
             errors.append("forecast frame_id does not match frame")
         if forecast.get("data_cutoff") != data_cutoff:
@@ -484,6 +564,18 @@ def _validate_bundle(
                 "calendar_id": feature.get("trading_calendar", {}).get("calendar_id"),
                 "calendar_version": feature.get("trading_calendar", {}).get("version"),
             }
+            if is_gc and manifest is not None:
+                contract = manifest.get("futures_contract", {})
+                expected_pairs.update(
+                    {
+                        "contract_code": instrument,
+                        "first_position_date": contract.get("first_position_date"),
+                        "last_trade_date": contract.get("last_trade_date"),
+                        "resolution_session_sequence_sha256": contract.get(
+                            "resolution_session_sequence_sha256"
+                        ),
+                    }
+                )
             for field, expected_value in expected_pairs.items():
                 if frozen.get(field) != expected_value:
                     errors.append(f"forecast frozen {field} does not match feature snapshot")
@@ -510,6 +602,10 @@ def _validate_bundle(
 
     if resolution is not None:
         _add_schema_errors(errors, resolution, "resolution", "resolution-record.json")
+        if forecast is not None and resolution.get(
+            "protocol_version"
+        ) != forecast.get("resolution_rule", {}).get("protocol_id"):
+            errors.append("resolution protocol does not match forecast")
         if forecast is not None:
             if resolution.get("forecast_id") != forecast.get("forecast_id"):
                 errors.append("resolution forecast_id does not match forecast")
@@ -517,52 +613,64 @@ def _validate_bundle(
                 errors.append("resolution frame_id does not match forecast")
         if resolution.get("status") == "resolved" and forecast is not None:
             observed = resolution["observed"]
-            reference = float(observed["reference_close"])
-            diagnostic = float(observed["diagnostic_close_3"])
-            final = float(observed["resolution_close_5"])
-            atr = float(observed["atr20_at_cutoff"])
+            reference = Decimal(str(observed["reference_close"]))
+            diagnostic = Decimal(str(observed["diagnostic_close_3"]))
+            final = Decimal(str(observed["resolution_close_5"]))
+            atr = Decimal(str(observed["atr20_at_cutoff"]))
             normalized_3 = (diagnostic - reference) / atr
             normalized_5 = (final - reference) / atr
-            if not _close(float(observed["normalized_change_3"]), normalized_3):
+            if not _decimal_close(
+                Decimal(str(observed["normalized_change_3"])), normalized_3
+            ):
                 errors.append("resolution normalized_change_3 is not reproducible")
-            if not _close(float(observed["normalized_change_5"]), normalized_5):
+            if not _decimal_close(
+                Decimal(str(observed["normalized_change_5"])), normalized_5
+            ):
                 errors.append("resolution normalized_change_5 is not reproducible")
-            expected_outcome = classify_normalized_change(
-                Decimal(str(normalized_5))
-            )
+            expected_outcome = classify_normalized_change(normalized_5)
             if observed.get("outcome_id") != expected_outcome:
                 errors.append("resolution outcome_id is not reproducible")
 
-            model_probabilities = _probabilities_by_outcome(
-                forecast["outcomes"], "outcome_id"
+            forecast_abstains = (
+                forecast.get("forecast_abstention", {}).get("abstain") is True
             )
-            baseline_probabilities = forecast["baseline"]["probabilities"]
-            one_hot = {
-                outcome: 1.0 if outcome == expected_outcome else 0.0
-                for outcome in ("up", "down", "range")
-            }
-            brier = sum(
-                (float(model_probabilities[outcome]) - one_hot[outcome]) ** 2
-                for outcome in one_hot
-            ) / 3.0
-            log_loss = -math.log(max(float(model_probabilities[expected_outcome]), 1e-15))
-            baseline_brier = sum(
-                (float(baseline_probabilities[outcome]) - one_hot[outcome]) ** 2
-                for outcome in one_hot
-            ) / 3.0
-            if baseline_brier == 0:
-                errors.append("resolution baseline Brier is zero; BSS is undefined")
+            if forecast_abstains:
+                errors.append("resolved resolution cannot score an abstained forecast")
             else:
-                bss = 1.0 - brier / baseline_brier
-                expected_scores = {
-                    "brier_multiclass": brier,
-                    "log_loss": log_loss,
-                    "baseline_brier": baseline_brier,
-                    "brier_skill_score": bss,
+                model_probabilities = _probabilities_by_outcome(
+                    forecast["outcomes"], "outcome_id"
+                )
+                baseline_probabilities = forecast["baseline"]["probabilities"]
+                one_hot = {
+                    outcome: 1.0 if outcome == expected_outcome else 0.0
+                    for outcome in ("up", "down", "range")
                 }
-                for field, expected_value in expected_scores.items():
-                    if not _close(float(resolution["scoring"][field]), expected_value):
-                        errors.append(f"resolution {field} is not reproducible")
+                brier = sum(
+                    (float(model_probabilities[outcome]) - one_hot[outcome]) ** 2
+                    for outcome in one_hot
+                ) / 3.0
+                log_loss = -math.log(
+                    max(float(model_probabilities[expected_outcome]), 1e-15)
+                )
+                baseline_brier = sum(
+                    (float(baseline_probabilities[outcome]) - one_hot[outcome]) ** 2
+                    for outcome in one_hot
+                ) / 3.0
+                if baseline_brier == 0:
+                    errors.append("resolution baseline Brier is zero; BSS is undefined")
+                else:
+                    bss = 1.0 - brier / baseline_brier
+                    expected_scores = {
+                        "brier_multiclass": brier,
+                        "log_loss": log_loss,
+                        "baseline_brier": baseline_brier,
+                        "brier_skill_score": bss,
+                    }
+                    for field, expected_value in expected_scores.items():
+                        if not _close(
+                            float(resolution["scoring"][field]), expected_value
+                        ):
+                            errors.append(f"resolution {field} is not reproducible")
 
     if errors and raise_on_error:
         raise ContractError(errors)

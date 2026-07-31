@@ -1,6 +1,6 @@
 # 项目状态
 
-- 最后更新：2026-07-30
+- 最后更新：2026-07-31
 - 当前阶段：Runtime Readiness
 - 当前里程碑：M3 First Certified Cognition Run
 - 总体状态：进行中
@@ -35,12 +35,18 @@
 - 新增 Feature Snapshot 与 Baseline Snapshot，冻结 C0、ATR(20)、mid.c、NY17 bar 边界、session sequence hash、历史窗口和代码版本。
 - 实现 OANDA 私有准备器：从环境变量读取 token/account ID，先核验账户 `XAU_USD`，再采集 D/H4，保留 provider 原始响应与 complete-only 规范化响应。
 - 实现 certified bundle 校验器，覆盖引用、时间、核心角色、概率和、outcome 唯一性、私有文件哈希、冻结量一致性与 Resolution 重算。
-- 建立 14 项反例/数值/私有准备/凭据防泄漏/解析重算/畸形输入测试与 GitHub Actions；原先五类已知伪 certified 对象均被拒绝。
+- 建立 18 项反例/数值/私有准备/凭据防泄漏/解析重算/畸形输入测试与 GitHub Actions；原先五类已知伪 certified 对象均被拒绝。
+- 完成 runtime 评审 must-fix：收窄配置占位符门、统一 Resolution Decimal 边界复现、明确拒绝弃权 Forecast 评分，并稳定处理 CLI 畸形上游结构错误。
+- 接受 ADR-0006 与 PRD v0.2，新增单一明确月份 COMEX GC 独立研究轨，禁止与 XAU/USD 或连续合约混用。
+- 完成数据资格矩阵 v0.2、评估契约 v0.3 与 Daily Prompt v0.3，预注册 `gc-single-contract-direction-5d:0.1.0`。
+- 实现 `prepare-gc`：私有导入合约规格、合约日历、daily settlement、同月 H4 和官方宏观/事件快照，冻结交割生命周期、五-session hash、C0、ATR(20) 与历史频率基线。
+- 扩展 schema 与 bundle 校验支持 XAU/USD/GC 双轨，并拒绝连续合约、跨交割生命周期窗口、现货/期货字段与 protocol 混用。
+- 建立共 26 项自动测试；合成 GC ready/completed bundle、GC Forecast 契约与原有 XAU/USD 回归测试通过。
 
 ## 当前决策
 
 - 先做离线、可回放、可评分的认知帧，不做自动交易。
-- 从 XAU/USD 日线与 4 小时级别开始。
+- 第一研究轨为 XAU/USD；第二研究轨为单一明确月份 COMEX GC，均以日线为主、H4 辅助。
 - 第一位用户是内部趋势研究者；首要场景是每日离线认知帧。
 - v0.1 目标是稳定达到 L3 条件化推理，并建立可审计的 L4 信念修正。
 - 先用 5 个试标样本修正标注规范，再扩展到 20—30 个金标准样本。
@@ -52,26 +58,28 @@
 - `AGENTS.md` 是唯一主规范；其他工具入口保持轻量。
 - 技术栈在数据许可、契约和 MVP 切片明确后再决定。
 - GitHub 保存规则、清单、哈希与许可允许的派生记录；原始 OANDA/经纪商行情只在私有运行环境使用。
-- 第一研究轨继续使用 XAU/USD；GC 不与现货合同混用，进入第二研究轨前另建 ADR。
+- GC 第一版只支持 `GC<month><year>` 单月合约、daily settlement 与同月 H4；不自动选主力、换月或构造连续合约。
 - certified 运行必须提供合格私有 evidence bundle 和冻结基线；缺失时不得从网页补行情或填写占位概率。
 - 首轮 Forecast 的概率必须逐项等于程序冻结的历史频率基线；未经新校准协议，LLM 不得凭叙事调整概率。
-- OANDA 原始数据只允许由符合区域许可的本地 Agent 读取，不上传至不符合许可的第三方 AI 会话。
+- OANDA/CME 原始数据只允许由符合许可的本地 Agent 读取，不上传至不符合许可的第三方 AI 会话；官方宏观/事件快照由 prepare 命令从白名单官方 HTTPS 地址自动下载到私有目录。
+- Agent 默认使用 `automated` 模式：API key 是调用授权，许可字段仅作 provenance；`certified` 仍可显式启用以要求完整审计证明。
 
 ## 下一步
 
-1. 账户持有人在仓库外填写实际 OANDA 区域许可证明，并冻结 Treasury、Federal Reserve H.10 与未来五日事件时钟文件。
-2. 在本地设置 `OANDA_API_TOKEN` / `OANDA_ACCOUNT_ID`，执行 `prepare-oanda` 生成第一份私有 bundle 与 ready run。
+1. 数据权利人在仓库外选择 XAU/USD 或一个明确 GC 月份，填写实际许可证明。
+2. XAU/USD 执行 `prepare-oanda`；GC 把授权文件转换为规范 JSON 后执行 `prepare-gc`，官方宏观/事件快照由运行器自动下载。
 3. 在同一本地环境执行 `validate-bundle --private-root ...`，确认十个硬门、真实文件哈希与实际基线。
-4. 由符合数据许可的本地 AI 按 `prompts/daily-cognition-run-v0.2.md` 生成首份 completed Q1 候选。
+4. 由符合数据许可的本地 AI 按 `prompts/daily-cognition-run-v0.3.md` 生成对应轨道的首份 completed Q1 候选。
 5. 再次通过 bundle 校验并进行人工时间完整性与反方审查。
 6. 到第 3 日追加诊断，到第 5 日追加正式 Resolution Record。
 
 ## 阻塞与风险
 
-- 尚未取得本次运行可用的账户级 OANDA/等价私有快照与区域协议记录。
+- 本次 XAU/USD 运行已从 `.env` 读取账户凭据，并自动下载 Treasury、Federal Reserve H.10、FOMC 官方快照；输出位于本地 gitignored private root，未提交原始响应。
+- 尚未配置真实 GC 合约数据源 URL/API 凭据；当前 GC 正例只使用合成数据，不能证明真实预测优势。
 - OANDA 条件通过只覆盖内部使用；完整价格响应不能放入公开 GitHub。
 - 基线算法与契约已实现，但尚未在用户实际 OANDA 快照上冻结，因此当前仍没有可评分真实 Forecast。
-- GitHub 连接无法访问私有行情；OANDA 原始数据不应上传云端，必须由符合许可的本地 Agent 读取私有目录。
+- GitHub 连接无法访问私有行情；OANDA/CME 原始数据不应上传云端，必须由符合许可的本地 Agent 读取私有目录。
 - ATR(20) 的 0.5 中性带只是 v0.2 预注册选择，尚未通过样本外数据检验。
 - 生命周期与稳定性主要依赖 Q2 专家审议，尚无市场唯一真值。
 - 小规模金标准用于验证任务定义，不能证明统计优势。
@@ -80,4 +88,4 @@
 
 ## 恢复工作时
 
-优先按 `docs/harness/DAILY_RUNBOOK.md` 在账户持有人本地环境执行 `prepare-oanda` 与 `validate-bundle`。不要把 API token、account ID 或原始受限行情提交到仓库/云端会话；不要用 TradingView 或公开网页补洞，也不要同时启动数据平台、完整多 Agent 系统和前端产品。
+优先按 `docs/harness/DAILY_RUNBOOK.md` 在数据权利人的本地环境执行对应 prepare 命令与 `validate-bundle`。不要把 API token、account ID、CME entitlement 或原始受限行情提交到仓库/云端会话；不要用 TradingView、连续合约网页代码或公开报价补洞。

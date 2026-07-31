@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dao-certified-runtime"
-version = "0.2.0"
-description = "Machine-enforced runtime for auditable DAO gold cognition bundles"
+version = "0.3.0"
+description = "Machine-enforced runtime for auditable spot and GC gold cognition bundles"
 requires-python = ">=3.11"
 dependencies = [
   "jsonschema[format]>=4.23,<5",

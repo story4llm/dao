@@ -1,0 +1,16 @@
+{
+  "contract_code": "GCZ26",
+  "records": [
+    {
+      "time": "REPLACE",
+      "available_at": "REPLACE",
+      "o": "REPLACE",
+      "h": "REPLACE",
+      "l": "REPLACE",
+      "c": "REPLACE",
+      "volume": 0,
+      "complete": true
+    }
+  ]
+}
+

@@ -1,5 +1,6 @@
 {
   "run_id": "run-YYYYMMDD-xauusd",
+  "mode": "automated",
   "environment": "practice",
   "previous_frame": null,
   "licence": {
@@ -14,7 +15,7 @@
   "official_snapshots": [
     {
       "role": "macro_rates",
-      "path": "/absolute/private/path/treasury-snapshot",
+      "auto_download": true,
       "source_locator": "https://home.treasury.gov/policy-issues/financing-the-government/interest-rate-statistics",
       "captured_at": "YYYY-MM-DDTHH:MM:SSZ",
       "available_at": "YYYY-MM-DDTHH:MM:SSZ",
@@ -26,7 +27,7 @@
     },
     {
       "role": "macro_usd",
-      "path": "/absolute/private/path/federal-reserve-h10-snapshot",
+      "auto_download": true,
       "source_locator": "https://www.federalreserve.gov/releases/h10/hist/",
       "captured_at": "YYYY-MM-DDTHH:MM:SSZ",
       "available_at": "YYYY-MM-DDTHH:MM:SSZ",
@@ -38,7 +39,7 @@
     },
     {
       "role": "event_clock",
-      "path": "/absolute/private/path/five-session-event-clock.json",
+      "auto_download": true,
       "source_locator": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
       "captured_at": "YYYY-MM-DDTHH:MM:SSZ",
       "available_at": "YYYY-MM-DDTHH:MM:SSZ",
