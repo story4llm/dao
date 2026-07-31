@@ -26,7 +26,7 @@
     "protocol_version": {
       "enum": [
         "xauusd-direction-5d:0.2.0",
-        "gc-single-contract-direction-5d:0.1.0"
+        "gc-kaggle-daily-direction-5d:0.1.0"
       ]
     },
     "source_snapshot_ref": {"type": "string", "minLength": 1},

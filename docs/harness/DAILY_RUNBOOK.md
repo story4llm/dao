@@ -1,10 +1,10 @@
 # 每日黄金趋势认知运行手册
 
-本手册定义用户如何让 AI 读取 GitHub Harness，并执行一次 XAU/USD 或单月 COMEX GC 趋势认知。两个研究轨使用独立价格字段、交易日历和解析协议；本系统不连接交易账户下单。
+本手册定义用户如何让 AI 读取 GitHub Harness，并执行一次 XAU/USD 或 COMEX GC（Kaggle 数据）趋势认知。两个研究轨使用独立价格字段、交易日历和解析协议；本系统不连接交易账户下单。
 
 ## 0. 运行边界与本地准备
 
-OANDA token、account ID、CME entitlement、原始响应和完整价格序列只能进入数据权利人的私有运行环境。不要把它们粘贴到聊天、命令参数、GitHub Issue 或公开仓库。
+OANDA token、account ID、原始响应和完整价格序列只能进入数据权利人的私有运行环境。不要把它们粘贴到聊天、命令参数、GitHub Issue 或公开仓库。
 
 安装：
 
@@ -14,7 +14,13 @@ python3 -m venv .venv
 python -m pip install -e .
 ```
 
-XAU/USD 复制 `templates/private-bundle-config.example.json`；GC 复制 `templates/private-gc-bundle-config.example.json`。默认 `automated` 模式只需填写合约身份、数据源 URL 和 API 环境变量，不要求每次重复填写许可声明。`official_snapshots[].path` 可省略（或配置 `auto_download: true`），运行器会从 `source_locator` 的官方 HTTPS 地址自动下载到 private root；仅在离线回放时才提供本地文件路径。示例中的 `REPLACE` 或 `example.com` 会被程序拒绝。
+GC 轨需要官方 Kaggle CLI，额外安装：
+
+```bash
+python -m pip install -e '.[kaggle]'
+```
+
+XAU/USD 复制 `templates/private-bundle-config.example.json`；GC 复制 `templates/private-gc-bundle-config.example.json`。默认 `automated` 模式不要求每次重复填写许可声明。`official_snapshots[].path` 可省略（或配置 `auto_download: true`），运行器会从 `source_locator` 的官方 HTTPS 地址自动下载到 private root；仅在离线回放时才提供本地文件路径。示例中的 `REPLACE` 或 `example.com` 会被程序拒绝。
 
 在本地交互式输入凭据，避免把值留在 shell history：
 
@@ -36,18 +42,20 @@ python -m dao_runtime.cli prepare-oanda \
 
 程序会先通过账户 instruments endpoint 确认实际存在 `XAU_USD`，再采集 midpoint D/H4，并自动抓取 Treasury、Federal Reserve H.10 与 FOMC 官方快照。所有原始响应写入 gitignored private root，manifest 记录实际抓取时间、字节数和 SHA-256；随后私有保存 provider 原始响应和 complete-only 规范化响应，冻结 C0、ATR(20)、bar 边界、session sequence hash 与历史频率基线。任何凭据都不会写入产物。
 
-### 0.1 单月 COMEX GC
+### 0.1 COMEX GC（Kaggle 数据集）
 
-在配置中填写一个明确月份（如 `GCZ26`）及四个 source URL；Agent 会自动下载 JSON 到 private root，也兼容 `path` 离线回放。不能使用连续合约。日线至少 278 条并含 `settlement`，H4 至少 30 条；另提供合约规格和未来五个 CME session 日历快照。
+GC 轨只有一套实现：官方 `kaggle` CLI 下载公开数据集 `youneseloiarm/comex-gold-futures-dataset-gc-contract`，daily-only、主参考价格为数据集 `Close`。认证完全交给 Kaggle CLI（`kaggle auth login`、`KAGGLE_API_TOKEN`、`~/.kaggle/access_token` 或旧版 `~/.kaggle/kaggle.json`），DAO 不解析、不保存任何 Kaggle token。
 
 ```bash
 python -m dao_runtime.cli prepare-gc \
   --config /private/path/private-gc-bundle-config.json \
-  --private-dir /private/path/runtime/private/run-YYYYMMDD-gcz26 \
-  --public-dir runs/YYYY/MM/DD/run-YYYYMMDD-gcz26
+  --private-dir /private/path/runtime/private/run-YYYYMMDD-gc \
+  --public-dir runs/YYYY/MM/DD/run-YYYYMMDD-gc
 ```
 
-程序核验 100 oz、0.10 美元 tick、First Position Date、Last Trade Date、`continuous=false` 和五-session 窗口，再用 daily settlement 冻结 C0、ATR(20) 与同轨历史频率基线。它不会自动下载 CME 数据、选择主力或换月。
+命令内部完成：检查 Kaggle CLI → 下载 dataset metadata 与原始 ZIP（保留 ZIP 并记录 SHA-256）→ 安全解压 → 按列结构自动识别唯一 OHLCV CSV → 校验与规范化 → 生成 Evidence Manifest、Feature Snapshot、Baseline Snapshot 与 ready `run.json` → bundle validation。数据缺失、列异常、日期冲突或数据过旧（默认 10 天，可用 `freshness_max_days` 配置）时输出 blocked，预测必须弃权。
+
+GC 语义边界：`Close` 不是 CME 官方 settlement；不声称单一交割月份身份；不需要 H4、合约规格或 CME session 日历；数据资格为 exploratory/Q0，不支持 certified，不可输出声称 CME 官方认证的 Q1。所有 Kaggle 下载文件只保存在 private root，不进入公开 GitHub 目录。
 
 ## 1. 一次运行的输入
 
@@ -68,14 +76,14 @@ AI 必须同时获得两类输入：
 
 最小覆盖：
 
-- XAU/USD 使用完整日线/H4和账户 instruments 快照；GC 使用至少 278 条同月 daily settlement、30 条同月 H4、合约规格和合约日历快照。
+- XAU/USD 使用完整日线/H4和账户 instruments 快照；GC 使用 Kaggle 数据集中至少 278 条完整 daily OHLCV 观测（daily-only，无 H4）。
 - 去密钥请求清单、抓取时间、响应哈希和 provider。
 - 截止时点前最新可得的实际利率/名义利率与美元环境证据。
 - 未来 5 个交易日已知重大事件时钟。
 - 由程序生成的 Feature Snapshot，冻结 C0、ATR(20)、price field、对应日线边界与 session sequence hash。
 - 由程序生成的 Baseline Snapshot，至少包含 252 个已解析历史 origin；缺失时预测必须弃权。
 
-OANDA/CME 私有证据不得作为不符合数据许可的云端会话附件。它只能由有权限的本地 Agent 从私有目录读取；云端 AI 仅可读取许可允许的派生记录。不得把凭据发在聊天中。
+OANDA 私有证据与 Kaggle 原始下载文件不得作为不符合数据许可的云端会话附件。它只能由有权限的本地 Agent 从私有目录读取；云端 AI 仅可读取许可允许的派生记录。不得把凭据发在聊天中。
 
 清单结构以 `schemas/evidence-manifest.schema.json` 为准，必须由对应 prepare 命令根据真实文件生成，不再允许手工复制 manifest 模板。
 
@@ -118,8 +126,8 @@ prompts/daily-cognition-run-v0.3.md 和其中列出的最小上下文。
 以本地 ready run 与对应 private root 执行一次黄金每日趋势认知：
 - mode: automated
 - horizon: 截止后第 5 个完整交易日
-- 日线为主，4 小时辅助
-- 轨道、合约、price field 和 protocol 完全采用 ready run，不跨轨替换
+- XAU/USD 日线为主、4 小时辅助；GC 仅使用 Kaggle daily 序列
+- 轨道、price field 和 protocol 完全采用 ready run，不跨轨替换
 
 先执行 validate-bundle，再生成 Market Cognition Frame、Forecast Contract；
 若存在上一帧则生成 Cognition Delta。严格使用 data_cutoff 前证据，
@@ -148,6 +156,21 @@ runs/YYYY/MM/DD/<run_id>/
 ```
 
 受限原始行情不进入上述 GitHub 目录。`evidence-manifest.json` 只保存哈希、边界和质量摘要。
+
+GC 私有目录（gitignored）的布局：
+
+```text
+runtime/private/<run-id>/
+├── kaggle/
+│   ├── dataset-metadata.json
+│   ├── original.zip
+│   ├── extracted/
+│   └── download-manifest.json
+├── normalized-gc-daily.json
+└── 其他私有快照
+```
+
+Kaggle ZIP、完整 CSV 与完整规范化日线只存在于 private root，永不提交。
 
 ## 6. 发布与回写
 

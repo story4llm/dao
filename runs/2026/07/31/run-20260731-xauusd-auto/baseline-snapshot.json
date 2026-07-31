@@ -1,0 +1,39 @@
+{
+  "baseline_id": "baseline-run-20260731-xauusd",
+  "baseline_payload_sha256": "372fba7369cb56f280ac7646a007e1e4e806a5d3dd7561052d7c59552b080ba6",
+  "contract_version": "0.1.0",
+  "data_cutoff": "2026-07-31T02:23:13.524862Z",
+  "feature_config_sha256": "12a08d058c36286d4e3d571d45987cd636a4d6b64f50d2c71037c4ee5c658f4b",
+  "instrument": "XAUUSD",
+  "method": "rolling_historical_frequency",
+  "normalization": {
+    "atr_lookback_true_ranges": 20,
+    "atr_method": "wilder_atr_seed_mean",
+    "boundary_policy": "inclusive_range",
+    "horizon_sessions": 5,
+    "neutral_band_atr_multiple": 0.5
+  },
+  "probabilities": {
+    "down": 0.32549256131885806,
+    "range": 0.27161238439887414,
+    "up": 0.4028950542822678
+  },
+  "protocol_id": "xauusd-direction-5d:0.2.0",
+  "provenance": {
+    "code_version": "baseline:0.1.0",
+    "created_at": "2026-07-31T02:23:13.524952Z",
+    "runtime_version": "dao-certified-runtime:0.2.0"
+  },
+  "source_daily_snapshot_sha256": "093fc16ee985b5a042080e34174e9f5d02d7e9e133f321d1d1729151da533b83",
+  "training": {
+    "end_session": "2026-07-22T21:00:00.000000000Z",
+    "minimum_sample_size": 252,
+    "outcome_counts": {
+      "down": 1619,
+      "range": 1351,
+      "up": 2004
+    },
+    "sample_size": 4974,
+    "start_session": "2008-07-13T21:00:00.000000000Z"
+  }
+}

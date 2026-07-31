@@ -11,5 +11,10 @@ dependencies = [
   "jsonschema[format]>=4.23,<5",
 ]
 
+[project.optional-dependencies]
+kaggle = [
+  "kaggle>=2.2,<3",
+]
+
 [tool.setuptools.packages.find]
 include = ["dao_runtime*"]

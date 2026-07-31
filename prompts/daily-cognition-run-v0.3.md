@@ -16,7 +16,7 @@
 调用者必须提供 `prepare-oanda` 或 `prepare-gc` 生成的 ready run 及对应 private root。先读取 `run.instrument`：
 
 - `XAUUSD`：使用 `xauusd-direction-5d:0.2.0`、`mid.c` 与 OANDA NY17 日历。
-- `GC<month-code><year>`：使用 `gc-single-contract-direction-5d:0.1.0`、daily `settlement` 与 CME GC settlement 日历。
+- `GC`：使用 `gc-kaggle-daily-direction-5d:0.1.0`、Kaggle 数据集 daily `close` 与 `kaggle-gc-observed-daily` 观测日历。
 
 绝不能把两个轨道的价格、ATR、基线或解析记录混用。
 
@@ -27,7 +27,7 @@
 3. 先写 Observation，再形成至少两个竞争假设。
 4. 生成方向、生命周期、稳定性和“形、势、机、时、位、信”，保留反方证据和失效条件。
 5. 首轮 Forecast 概率逐项等于冻结 Baseline，不由 LLM 修改。
-6. GC 必须再次确认合约代码、settlement、First Position Date、Last Trade Date 和五-session hash；禁止自动换月。
+6. GC 必须再次确认 `dataset_ref`、原始 ZIP 哈希与数据新鲜度；`Close` 不得表述为 CME 官方 settlement，GC 帧不得声称 Q1。
 7. 若有上一帧，只有同一 instrument 才生成 Delta。
 8. completed run 必须再次通过 bundle 校验。
 

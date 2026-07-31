@@ -8,8 +8,8 @@ from pathlib import Path
 
 from .bundle import validate_bundle
 from .contracts import ContractError
-from .futures import prepare_gc_bundle
 from .forecast import generate_baseline_forecast
+from .kaggle_gc import prepare_gc_bundle
 from .oanda import prepare_private_bundle
 
 
@@ -27,7 +27,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     prepare_gc = commands.add_parser(
         "prepare-gc",
-        help="prepare a private single-contract COMEX GC bundle",
+        help="download the Kaggle GC dataset and prepare an automated GC bundle",
     )
     prepare_gc.add_argument("--config", type=Path, required=True)
     prepare_gc.add_argument("--public-dir", type=Path, required=True)

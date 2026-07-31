@@ -15,7 +15,7 @@ DAO（道）是一个面向黄金市场的 AI 趋势认知项目。它把中国�
 
 ## 当前阶段
 
-仓库目前处于 `runtime-readiness` 阶段：研究、认知和评估契约已经形成，标准 Schema、跨文件硬门、OANDA XAU/USD 与单月 COMEX GC 私有准备器、Feature/Baseline 冻结已经落地。当前重心是在数据权利人的本地环境执行真实、可回放的认知帧，而不是建设前端或自动交易代码。
+仓库目前处于 `runtime-readiness` 阶段：研究、认知和评估契约已经形成，标准 Schema、跨文件硬门、OANDA XAU/USD 私有准备器、Kaggle GC 自动准备器、Feature/Baseline 冻结已经落地。当前重心是在数据权利人的本地环境执行真实、可回放的认知帧，而不是建设前端或自动交易代码。
 
 核心研究报告：
 
@@ -94,7 +94,7 @@ make validate
 ## 执行一次黄金趋势认知
 
 1. 在许可人的本地环境安装运行包并填写一次性许可声明；`prepare-*` 会从白名单官方 HTTPS 地址自动下载三类宏观/事件快照到 gitignored private root。
-2. XAU/USD 使用 `prepare-oanda`；单月 COMEX GC 使用 `prepare-gc`，默认由 Agent 根据 source URL 自动下载合约、日历、日结算和 H4 数据。API 凭据只放在本地环境，不要把完整行情放入聊天或仓库。
+2. XAU/USD 使用 `prepare-oanda`（API 凭据只放在本地环境）。GC 使用 `prepare-gc`：唯一数据源是 Kaggle 数据集 `youneseloiarm/comex-gold-futures-dataset-gc-contract`，由官方 `kaggle` CLI 自动下载（`python -m pip install -e '.[kaggle]'` 安装、`kaggle auth login` 认证），daily-only、主参考价格为数据集 `Close`（非 CME 官方 settlement）、资格为 exploratory/Q0。所有下载文件只保存在 gitignored private root。
 3. 用 `validate-bundle --private-root ...` 验证 Schema、时间、概率、引用和真实文件哈希。
 4. 执行 `generate-baseline-forecast --run-dir ...` 生成冻结基线 Forecast Contract，再让本地 AI 读取 `AGENTS.md` 与 `prompts/daily-cognition-run-v0.3.md`，补充 Evidence、MCF 与解释。
 5. completed run 必须再次通过同一 bundle 校验；任一核心门失败时输出 blocked/Q0 并预测弃权。
@@ -111,4 +111,4 @@ make validate
 
 ## 下一里程碑
 
-双研究轨的软件运行层已经形成。下一步由数据权利人在本地填写 OANDA 或单月 GC 实际许可证明，执行相应 prepare 命令；运行器会自动下载允许的官方快照并执行 `validate-bundle`，再由本地 AI 生成真实 `certified` Q1 候选认知帧。具体见[数据源矩阵](docs/data/data-source-qualification-matrix-v0.2.md)、[每日运行手册](docs/harness/DAILY_RUNBOOK.md)与[项目状态](state/PROJECT_STATE.md)。
+双研究轨的软件运行层已经形成。下一步由数据权利人在本地执行 `prepare-oanda`（XAU/USD certified）或 `prepare-gc`（Kaggle GC，automated/exploratory）；运行器会自动下载允许的官方快照并执行 `validate-bundle`，再由本地 AI 生成对应轨道的首份真实认知帧。具体见[数据源矩阵](docs/data/data-source-qualification-matrix-v0.2.md)、[每日运行手册](docs/harness/DAILY_RUNBOOK.md)与[项目状态](state/PROJECT_STATE.md)。

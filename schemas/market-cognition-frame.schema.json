@@ -23,12 +23,7 @@
   ],
   "properties": {
     "frame_id": {"type": "string", "minLength": 1},
-    "instrument": {
-      "anyOf": [
-        {"const": "XAUUSD"},
-        {"type": "string", "pattern": "^GC[FGHJKMNQUVXZ][0-9]{2}$"}
-      ]
-    },
+    "instrument": {"enum": ["XAUUSD", "GC"]},
     "as_of": {"type": "string", "format": "date-time"},
     "data_cutoff": {"type": "string", "format": "date-time"},
     "horizon": {"type": "string", "minLength": 1},
@@ -222,7 +217,7 @@
             "properties": {
               "contract_version": {"const": "2.2.0"},
               "resolution_protocol_version": {
-                "const": "gc-single-contract-direction-5d:0.1.0"
+                "const": "gc-kaggle-daily-direction-5d:0.1.0"
               }
             }
           }

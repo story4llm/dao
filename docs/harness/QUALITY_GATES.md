@@ -19,7 +19,7 @@
 - 修订数据和最终值不得穿越进入历史预测。
 - 每次运行记录 source policy 版本、去密钥请求清单、原始响应哈希和私有位置引用。
 - 冻结 Feature Snapshot 与 Baseline Snapshot，记录 C0、ATR(20)、price field、bar 边界、session sequence、历史窗口和代码版本。
-- GC run 额外冻结单一月份合约、First Position Date、Last Trade Date、settlement 字段和未来五个 CME session；禁止静默换月或未声明的连续合约。
+- GC run 额外冻结 Kaggle `dataset_ref`、原始 ZIP SHA-256、数据集 `Close` 字段与观测日期序列；数据过旧或列异常时 blocked，Close 不得表述为官方 settlement。
 - 公开网页或截图只能进入 exploratory/Q0，除非其时点、bar 语义和许可另有证明。
 
 ## Gate 4：模型与概率

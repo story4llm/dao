@@ -23,16 +23,11 @@
   "properties": {
     "contract_version": {"enum": ["0.1.0", "0.2.0"]},
     "feature_snapshot_id": {"type": "string", "minLength": 1},
-    "instrument": {
-      "anyOf": [
-        {"const": "XAUUSD"},
-        {"type": "string", "pattern": "^GC[FGHJKMNQUVXZ][0-9]{2}$"}
-      ]
-    },
+    "instrument": {"enum": ["XAUUSD", "GC"]},
     "data_cutoff": {"type": "string", "format": "date-time"},
     "source_manifest_id": {"type": "string", "minLength": 1},
     "reference_session": {"type": "string", "format": "date-time"},
-    "reference_price_field": {"enum": ["mid.c", "settlement"]},
+    "reference_price_field": {"enum": ["mid.c", "close"]},
     "reference_close": {"type": "number", "exclusiveMinimum": 0},
     "atr20": {
       "type": "object",
@@ -69,12 +64,12 @@
       ],
       "properties": {
         "granularity": {"const": "D"},
-        "price_component": {"enum": ["M", "SETTLEMENT"]},
+        "price_component": {"enum": ["M", "CLOSE"]},
         "daily_alignment": {"type": ["integer", "null"]},
         "alignment_timezone": {
-          "enum": ["America/New_York", "America/Chicago"]
+          "enum": ["America/New_York", "UTC"]
         },
-        "timestamp_semantics": {"enum": ["open_time", "session_close"]}
+        "timestamp_semantics": {"enum": ["open_time", "dataset_observation_date"]}
       }
     },
     "trading_calendar": {
@@ -82,7 +77,7 @@
       "additionalProperties": false,
       "required": ["calendar_id", "version", "session_sequence_sha256"],
       "properties": {
-        "calendar_id": {"enum": ["oanda-xauusd-ny17", "cme-gc-settlement"]},
+        "calendar_id": {"enum": ["oanda-xauusd-ny17", "kaggle-gc-observed-daily"]},
         "version": {"const": "0.1.0"},
         "session_sequence_sha256": {
           "type": "string",
@@ -129,17 +124,17 @@
       "else": {
         "properties": {
           "contract_version": {"const": "0.2.0"},
-          "reference_price_field": {"const": "settlement"},
+          "reference_price_field": {"const": "close"},
           "bar_config": {
             "properties": {
-              "price_component": {"const": "SETTLEMENT"},
+              "price_component": {"const": "CLOSE"},
               "daily_alignment": {"type": "null"},
-              "alignment_timezone": {"const": "America/Chicago"},
-              "timestamp_semantics": {"const": "session_close"}
+              "alignment_timezone": {"const": "UTC"},
+              "timestamp_semantics": {"const": "dataset_observation_date"}
             }
           },
           "trading_calendar": {
-            "properties": {"calendar_id": {"const": "cme-gc-settlement"}}
+            "properties": {"calendar_id": {"const": "kaggle-gc-observed-daily"}}
           }
         }
       }

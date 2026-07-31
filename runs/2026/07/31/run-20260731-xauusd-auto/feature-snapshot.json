@@ -1,0 +1,35 @@
+{
+  "atr20": {
+    "calculation_version": "wilder-atr-seed20:0.1.0",
+    "input_snapshot_sha256": "093fc16ee985b5a042080e34174e9f5d02d7e9e133f321d1d1729151da533b83",
+    "lookback_true_ranges": 20,
+    "method": "wilder_atr_seed_mean",
+    "required_complete_bars": 21,
+    "value": 85.68075
+  },
+  "bar_config": {
+    "alignment_timezone": "America/New_York",
+    "daily_alignment": 17,
+    "granularity": "D",
+    "price_component": "M",
+    "timestamp_semantics": "open_time"
+  },
+  "contract_version": "0.1.0",
+  "data_cutoff": "2026-07-31T02:23:13.524862Z",
+  "feature_payload_sha256": "f8d7b35b9c1704ca76a051df1409432a63528c411b804857dcf623bd64946a3a",
+  "feature_snapshot_id": "features-run-20260731-xauusd",
+  "instrument": "XAUUSD",
+  "provenance": {
+    "created_at": "2026-07-31T02:23:13.524867Z",
+    "runtime_version": "dao-certified-runtime:0.2.0"
+  },
+  "reference_close": 4103.27,
+  "reference_price_field": "mid.c",
+  "reference_session": "2026-07-29T21:00:00.000000000Z",
+  "source_manifest_id": "evidence-run-20260731-xauusd",
+  "trading_calendar": {
+    "calendar_id": "oanda-xauusd-ny17",
+    "session_sequence_sha256": "551dfa3e9611a920683eaeda02a21a8c03a0bab096339ed05246aa9bb489f7e6",
+    "version": "0.1.0"
+  }
+}

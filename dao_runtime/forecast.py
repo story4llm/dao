@@ -17,14 +17,18 @@ def generate_baseline_forecast(run_dir: Path) -> Path:
     """Emit a schema-shaped five-session forecast from frozen runtime inputs."""
     root = run_dir.resolve()
     run = load_json(root / "run.json")
+    if run.get("status") != "ready":
+        raise ValueError(
+            "only a ready run can emit a baseline forecast; "
+            f"run status is {run.get('status')!r}"
+        )
     baseline = load_json(root / str(run["input"]["baseline"]))
     feature = load_json(root / str(run["input"]["feature_snapshot"]))
     manifest = load_json(root / str(run["input"]["evidence_manifest"]))
     instrument = run["instrument"]
-    is_gc = instrument.startswith("GC")
+    is_gc = instrument == "GC"
     training = baseline["training"]
     probabilities = baseline["probabilities"]
-    contract = manifest.get("futures_contract", {})
     calendar = feature["trading_calendar"]
     bar_config = feature["bar_config"]
     frozen_values: dict[str, Any] = {
@@ -40,14 +44,11 @@ def generate_baseline_forecast(run_dir: Path) -> Path:
         "calendar_version": calendar.get("calendar_version", calendar.get("version")),
     }
     if is_gc:
+        dataset = manifest["dataset"]
         frozen_values.update(
             {
-                "contract_code": contract["contract_code"],
-                "first_position_date": contract["first_position_date"],
-                "last_trade_date": contract["last_trade_date"],
-                "resolution_session_sequence_sha256": contract[
-                    "resolution_session_sequence_sha256"
-                ],
+                "dataset_ref": dataset["dataset_ref"],
+                "source_archive_sha256": dataset["archive_sha256"],
             }
         )
     forecast = {
@@ -103,7 +104,7 @@ def generate_baseline_forecast(run_dir: Path) -> Path:
             "frozen_values": frozen_values,
         },
         "invalidation_conditions": [
-            "The frozen price snapshot, contract identity, or resolution calendar is invalid.",
+            "The frozen price snapshot or dataset provenance is invalid.",
             "The five-session resolution window cannot be observed completely.",
         ],
         "forecast_abstention": {

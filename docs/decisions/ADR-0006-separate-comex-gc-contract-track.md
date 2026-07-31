@@ -1,7 +1,9 @@
 # ADR-0006：以单一明确月份合约建立独立 COMEX GC 研究轨
 
-- 状态：Accepted
+- 状态：Superseded by [ADR-0009](ADR-0009-kaggle-gc-dataset-track.md)（2026-07-31）
 - 日期：2026-07-31
+
+> 本决策的 CME/DataMine 单月合约管线已整体移除。GC 研究轨的唯一实现见 ADR-0009：Kaggle 数据集 + 官方 kaggle CLI，daily-only，exploratory/Q0。本文仅作历史审计记录保留，不再描述有效运行路径。
 
 ## 背景
 

@@ -5,30 +5,33 @@ from __future__ import annotations
 import json
 import math
 import re
-from datetime import date
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
 from .contracts import (
     ContractError,
-    canonical_json_bytes,
     canonical_payload_sha256,
     load_json,
     parse_datetime,
     probability_sum_errors,
     schema_errors,
-    sha256_bytes,
     sha256_file,
     unique_outcomes_errors,
 )
 from .features import classify_normalized_change
 
 
-CORE_ROLES = {
+XAUUSD_CORE_ROLES = {
     "instrument_spec",
     "price_daily",
     "price_h4",
+    "macro_rates",
+    "macro_usd",
+    "event_clock",
+}
+GC_CORE_ROLES = {
+    "price_daily",
     "macro_rates",
     "macro_usd",
     "event_clock",
@@ -38,11 +41,11 @@ SECRET_PATTERNS = (
     re.compile(r"authorization\s*:\s*bearer", re.IGNORECASE),
     re.compile(r"\boanda_api_token\b", re.IGNORECASE),
     re.compile(r"\boanda_account_id\b", re.IGNORECASE),
+    re.compile(r"\bkaggle_api_token\b", re.IGNORECASE),
     re.compile(r'"accountID"\s*:', re.IGNORECASE),
 )
 DECIMAL_TOLERANCE = Decimal("1e-9")
-GC_INSTRUMENT_PATTERN = re.compile(r"^GC[FGHJKMNQUVXZ][0-9]{2}$")
-GC_PROTOCOL_ID = "gc-single-contract-direction-5d:0.1.0"
+GC_PROTOCOL_ID = "gc-kaggle-daily-direction-5d:0.1.0"
 XAUUSD_PROTOCOL_ID = "xauusd-direction-5d:0.2.0"
 
 
@@ -192,9 +195,7 @@ def _validate_bundle(
     as_of = run.get("as_of")
     data_cutoff = run.get("data_cutoff")
     instrument = run.get("instrument")
-    is_gc = isinstance(instrument, str) and bool(
-        GC_INSTRUMENT_PATTERN.fullmatch(instrument)
-    )
+    is_gc = instrument == "GC"
     if isinstance(as_of, str) and isinstance(data_cutoff, str):
         _time_leq(data_cutoff, as_of, "run.data_cutoff", errors)
 
@@ -223,41 +224,13 @@ def _validate_bundle(
             errors.append("manifest as_of does not match run")
         provider = manifest.get("provider", {})
         if is_gc:
-            contract = manifest.get("futures_contract", {})
-            if contract.get("contract_code") != instrument:
-                errors.append("futures contract_code does not match run instrument")
-            if provider.get("instrument_id") != instrument:
-                errors.append("futures provider instrument_id does not match run")
-            sessions = contract.get("resolution_sessions", [])
-            if isinstance(sessions, list):
-                expected_session_hash = sha256_bytes(canonical_json_bytes(sessions))
-                if (
-                    contract.get("resolution_session_sequence_sha256")
-                    != expected_session_hash
-                ):
-                    errors.append("futures resolution session hash mismatch")
-                try:
-                    first_position = date.fromisoformat(
-                        contract["first_position_date"]
-                    )
-                    last_trade = date.fromisoformat(contract["last_trade_date"])
-                    parsed_sessions = [parse_datetime(value) for value in sessions]
-                    if parsed_sessions != sorted(parsed_sessions):
-                        errors.append(
-                            "futures resolution sessions must be increasing"
-                        )
-                    if any(
-                        value.date() >= first_position
-                        or value.date() >= last_trade
-                        for value in parsed_sessions
-                    ):
-                        errors.append(
-                            "futures resolution window reaches delivery lifecycle"
-                        )
-                except (KeyError, TypeError, ValueError) as exc:
-                    errors.append(f"invalid futures contract lifecycle: {exc}")
-        elif manifest.get("futures_contract") is not None:
-            errors.append("XAUUSD manifest cannot contain futures_contract")
+            if provider.get("provider_id") != "kaggle":
+                errors.append("GC manifest provider must be kaggle")
+            dataset = manifest.get("dataset", {})
+            if not isinstance(dataset, dict) or not dataset.get("dataset_ref"):
+                errors.append("GC manifest must record the Kaggle dataset provenance")
+            elif provider.get("dataset_ref") != dataset.get("dataset_ref"):
+                errors.append("GC provider dataset_ref does not match dataset block")
 
         snapshots = manifest.get("snapshots", [])
         snapshot_ids = [item.get("snapshot_id") for item in snapshots]
@@ -266,9 +239,7 @@ def _validate_bundle(
         roles = [item.get("role") for item in snapshots]
         if len(roles) != len(set(roles)):
             errors.append("manifest snapshot roles must be unique")
-        missing_roles = CORE_ROLES - set(roles)
-        if is_gc and "contract_calendar" not in roles:
-            missing_roles.add("contract_calendar")
+        missing_roles = (GC_CORE_ROLES if is_gc else XAUUSD_CORE_ROLES) - set(roles)
         if missing_roles:
             errors.append(
                 "manifest missing certified roles: " + ", ".join(sorted(missing_roles))
@@ -500,6 +471,10 @@ def _validate_bundle(
         if mode == "certified" and status in {"completed", "resolved"}:
             if frame.get("provenance", {}).get("certification_level") != "Q1":
                 errors.append("completed certified frame must be a Q1 candidate")
+        if is_gc and frame.get("provenance", {}).get("certification_level") == "Q1":
+            errors.append(
+                "kaggle GC runs are exploratory-grade data and cannot claim Q1"
+            )
 
     if forecast is not None:
         _add_schema_errors(errors, forecast, "forecast", "forecast-contract.json")
@@ -565,15 +540,11 @@ def _validate_bundle(
                 "calendar_version": feature.get("trading_calendar", {}).get("version"),
             }
             if is_gc and manifest is not None:
-                contract = manifest.get("futures_contract", {})
+                dataset = manifest.get("dataset", {})
                 expected_pairs.update(
                     {
-                        "contract_code": instrument,
-                        "first_position_date": contract.get("first_position_date"),
-                        "last_trade_date": contract.get("last_trade_date"),
-                        "resolution_session_sequence_sha256": contract.get(
-                            "resolution_session_sequence_sha256"
-                        ),
+                        "dataset_ref": dataset.get("dataset_ref"),
+                        "source_archive_sha256": dataset.get("archive_sha256"),
                     }
                 )
             for field, expected_value in expected_pairs.items():

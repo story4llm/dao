@@ -8,6 +8,8 @@ private-bundle-config*.json
 # Licensed or account-scoped market data
 runtime/private/
 runs/**/raw/
+runs/**/*.csv
+runs/**/*.zip
 
 # Local build and cache output
 .venv/

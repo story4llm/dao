@@ -32,7 +32,7 @@ evidence_refs: []
 counterevidence_refs: []
 resolution_rule:
   protocol_id: xauusd-direction-5d:0.2.0
-  reference_price_field: provider-defined-close-or-settlement
+  reference_price_field: mid.c-or-dataset-close
   normalizer:
     method: wilder_atr
     lookback_sessions: 20

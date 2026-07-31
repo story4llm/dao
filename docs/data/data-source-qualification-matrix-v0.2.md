@@ -1,65 +1,45 @@
 # 数据源资格矩阵 v0.2：XAU/USD 与 COMEX GC
 
-- 状态：Accepted for dual-track runtime
+- 状态：Accepted for dual-track runtime（GC 部分于 2026-07-31 改为 Kaggle 数据集）
 - 日期：2026-07-31
-- 适用标的：OANDA `XAU_USD`；单一明确月份的 COMEX Gold Futures `GC`
-- 关联决策：[ADR-0004](../decisions/ADR-0004-github-harness-private-evidence-runtime.md)、[ADR-0006](../decisions/ADR-0006-separate-comex-gc-contract-track.md)
+- 适用标的：OANDA `XAU_USD`；COMEX Gold Futures `GC`（Kaggle 数据集）
+- 关联决策：[ADR-0004](../decisions/ADR-0004-github-harness-private-evidence-runtime.md)、[ADR-0006](../decisions/ADR-0006-separate-comex-gc-contract-track.md)（Superseded）、[ADR-0009](../decisions/ADR-0009-kaggle-gc-dataset-track.md)
 
 ## 1. 结论
 
-XAU/USD 继续执行 [v0.1 矩阵](data-source-qualification-matrix-v0.1.md)。新增 GC 研究轨只条件接受账户持有人已获许可的 CME DataMine、CME API 或等价供应商私有快照。公开延迟网页、图表和未声明 roll rule 的“主力连续”代码仍只能用于 Q0 探索。
+XAU/USD 继续执行 [v0.1 矩阵](data-source-qualification-matrix-v0.1.md)。GC 研究轨的唯一数据源是公开 Kaggle 数据集 `youneseloiarm/comex-gold-futures-dataset-gc-contract`，通过官方 `kaggle` CLI 下载。该数据集派生自 TradingView，不是交易所官方数据，因此 GC 轨整体资格为 **exploratory / Q0**，不参与 certified。
 
 | 研究轨 | 主价格 | 辅助价格 | 资格 |
 |---|---|---|---|
 | XAU/USD | OANDA `XAU_USD` complete midpoint D | 同源 H4 | 延续 v0.1 conditional pass |
-| COMEX GC | 单一上市月份的官方/授权 daily settlement | 同一月份的 H4 trade OHLC | **Conditional pass** |
-| GC 连续合约 | 需独立 ILA、roll rule 和 point-in-time constituent | 不适用 | 暂不支持 certified |
+| COMEX GC | Kaggle 数据集 daily OHLCV 的 `Close` | 无（daily-only） | **Exploratory / Q0，certified 不适用** |
 
-## 2. GC 合约身份硬门
+## 2. GC 数据语义硬门
 
-每次 GC run 必须冻结：
+每次 GC run 由 `prepare-gc` 程序强制：
 
-- `GC<month-code><2-digit-year>` 合约代码，例如 `GCZ26`；
-- 产品 `GC`、venue `COMEX`、合约月份；
-- First Position Date 与 Last Trade Date；
-- 100 金衡盎司、美元/盎司、0.10 美元 tick；
-- `continuous=false`、`roll_policy=none`；
-- `America/Chicago`、`cme-gc-settlement:0.1.0`；
-- 截止后五个完整交易所 session 及其 SHA-256。
+- `instrument=GC`、`provider_id=kaggle`、`source_type=kaggle_dataset`；
+- `dataset_ref` 默认且文档统一为 `youneseloiarm/comex-gold-futures-dataset-gc-contract`；
+- 主参考价格为数据集 `Close`；**不声称** Close 是 CME 官方 settlement；
+- **不声称**数据属于某个明确交割月份，也不声称是非连续合约；
+- 行级时间语义为 `dataset_observation_date`（数据集只有日期，不伪造 `available_at` 或交易所结算时刻）；
+- 日期可解析、升序、唯一；OHLC 为正且边界一致；volume 非负；
+- 至少 278 条完整日线（ATR20 + 5 日 horizon + 252 个 baseline origin）；
+- 数据过旧（默认 10 天，`freshness_max_days` 可配置）时 blocked，预测弃权；
+- 原始 ZIP、解压文件与规范化日线仅保存在 private root，公开目录只保留哈希与派生冻结量。
 
-五日窗口必须完全早于 First Position Date 与 Last Trade Date。无法证明时阻断，不能静默换月。
+## 3. 下载与完整性
 
-## 3. 私有输入格式
+`prepare-gc` 通过官方 Kaggle CLI（`subprocess`，无 shell）执行 `kaggle datasets metadata` 与 `kaggle datasets download`，保留 metadata 与原始 ZIP，记录 CLI 版本、下载时间、dataset ref、文件名、大小与 SHA-256，并安全解压（拒绝路径穿越）。CSV 由列结构自动识别；多个候选时必须失败，不静默取第一个。
 
-`prepare-gc` 接收四类授权 JSON 源文件：
+## 4. 认证与留存
 
-1. `instrument_spec`：合约规格和交割生命周期；
-2. `contract_calendar`：准确的未来五个完整交易 session；
-3. `price_daily`：至少 278 条同一合约完整日线，OHLC、`settlement`、`available_at`、volume/open interest；
-4. `price_h4`：至少 30 条同一合约完整 H4 trade OHLC 与 `available_at`。
+Kaggle 认证完全由官方 CLI 处理（`kaggle auth login`、`KAGGLE_API_TOKEN`、`~/.kaggle/access_token`、旧版 `~/.kaggle/kaggle.json`）。DAO 不解析或保存 token；任何配置、manifest、日志和异常信息中都不得出现 token。
 
-每日主参考字段只能是 `settlement`。H4 的 `close` 只用于辅助结构，不得替代 settlement 或与另一月份拼接。输入转换器保存源文件和规范化文件的独立哈希。
+官方宏观与事件快照仍由 prepare 命令从白名单官方 HTTPS `source_locator` 自动下载并保存到 gitignored private root，许可、时点、freshness、哈希和 schema 门不变。
 
-## 4. 许可与留存
+数据集在 Kaggle 页面上的许可条款由使用者自行核验；manifest 中许可字段记录为 `unknown`，程序不会因为文件可下载就升级数据资格。
 
-官方宏观与事件快照由本地 `prepare-oanda`/`prepare-gc` 从配置的白名单 HTTPS `source_locator` 自动下载并保存到 gitignored private root。自动下载减少人工复制，不改变许可、时点、freshness、哈希和 schema 门；网络失败或来源不在白名单时必须阻断。
+## 5. 运行模式
 
-自动 Agent 运行使用调用者提供的 API key 作为访问授权，不把许可声明设为启动阻断；缺失许可元数据时仅记录 `licence_status=unknown`。需要完整审计的 `certified` 模式仍可显式要求许可证明。
-
-CME 官方资料说明 DataMine 通过获授权 API ID 提供已购买历史文件；连续价格序列需要相应 Information License Agreement。用户必须依据自己的实体、用途和交付方式核验许可，程序不会因为文件可读取就自动判定可用于 AI。
-
-私有环境保存原始/规范化行情、凭据和 entitlement 信息。GitHub 只保存许可允许的合约边界、哈希、记录数和派生 Feature/Baseline/MCF，不保存可还原的完整 CME 行情。
-
-官方参考：
-
-- [GC 合约规格](https://www.cmegroup.com/market-regulation/files/gold-futures-and-options-fact-card.pdf)
-- [DataMine API](https://www.cmegroup.com/datamine/datamine-api.html)
-- [DataMine List API](https://www.cmegroup.com/datamine/datamine-list-api.html)
-- [CME Continuous Price Series](https://www.cmegroup.com/market-data/cme-group-continuous-price-series.html)
-- [CME 数据许可](https://www.cmegroup.com/market-data/license-data.html)
-
-## 5. Certified / Exploratory
-
-GC certified 必须同时通过合约身份、许可、日线/H4 完整性、逐记录可得时间、源文件哈希、合约日历、宏观/事件覆盖、Feature 与 Baseline 冻结。任一失败时输出 blocked/Q0；预测弃权，概率为 `null`。
-
-真实 GC 数据尚未经过本仓库的账户级运行，因此本矩阵只接受软件管线的条件资格，不代表已取得数据权利或预测优势。
+GC 默认且仅支持 `automated` 模式；数据资格记录为 exploratory/Q0，`certified_eligible=false`。GC run 不允许输出声称为 CME 官方认证的 Q1 认知帧。数据缺失或过旧时必须 blocked，Forecast 弃权。XAU/USD 的 certified 能力不受影响。
