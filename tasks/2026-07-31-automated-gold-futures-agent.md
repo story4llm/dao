@@ -1,6 +1,6 @@
 ---
 id: 2026-07-31-automated-gold-futures-agent
-status: in_progress
+status: completed
 owner: codex
 created_at: 2026-07-31
 updated_at: 2026-07-31
