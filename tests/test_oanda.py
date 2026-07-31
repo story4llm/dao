@@ -10,11 +10,43 @@ from pathlib import Path
 from unittest.mock import patch
 
 from dao_runtime.bundle import validate_bundle
-from dao_runtime.oanda import _contains_placeholder, prepare_private_bundle
+from dao_runtime.oanda import (
+    _contains_placeholder,
+    _copy_official_snapshot,
+    _request_official,
+    prepare_private_bundle,
+)
 from tests.test_features import synthetic_daily
 
 
 class OandaPreparationTests(unittest.TestCase):
+    def test_official_snapshot_missing_path_is_downloaded_from_allowlisted_source(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            private_dir = Path(temp)
+            item = {
+                "role": "macro_rates",
+                "source_locator": "https://home.treasury.gov/official.xml",
+                "observed_at": "2026-07-30T00:00:00Z",
+                "source_timezone": "America/New_York",
+                "timestamp_semantics": "publication_time",
+                "freshness_max_seconds": 345600,
+            }
+            with (
+                patch("dao_runtime.oanda._request_official", return_value=b"<feed/>"),
+                patch(
+                    "dao_runtime.oanda.utc_now",
+                    return_value=datetime(2026, 7, 30, 12, 0, tzinfo=timezone.utc),
+                ),
+            ):
+                snapshot = _copy_official_snapshot(item, private_dir)
+            self.assertEqual(snapshot["available_at"], "2026-07-30T12:00:00.000000Z")
+            self.assertTrue((private_dir / "official-macro_rates.xml").is_file())
+            self.assertEqual(snapshot["bytes"], 7)
+
+    def test_official_snapshot_rejects_non_official_source(self) -> None:
+        with self.assertRaisesRegex(ValueError, "not allowlisted"):
+            _request_official("https://example.org/snapshot.json")
+
     def test_placeholder_check_does_not_reject_ordinary_replace_text(self) -> None:
         self.assertFalse(
             _contains_placeholder(

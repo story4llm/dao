@@ -42,6 +42,8 @@ XAU/USD 继续执行 [v0.1 矩阵](data-source-qualification-matrix-v0.1.md)。�
 
 ## 4. 许可与留存
 
+官方宏观与事件快照由本地 `prepare-oanda`/`prepare-gc` 从配置的白名单 HTTPS `source_locator` 自动下载并保存到 gitignored private root。自动下载减少人工复制，不改变许可、时点、freshness、哈希和 schema 门；网络失败或来源不在白名单时必须阻断。
+
 CME 官方资料说明 DataMine 通过获授权 API ID 提供已购买历史文件；连续价格序列需要相应 Information License Agreement。用户必须依据自己的实体、用途和交付方式核验许可，程序不会因为文件可读取就自动判定可用于 AI。
 
 私有环境保存原始/规范化行情、凭据和 entitlement 信息。GitHub 只保存许可允许的合约边界、哈希、记录数和派生 Feature/Baseline/MCF，不保存可还原的完整 CME 行情。
@@ -59,4 +61,3 @@ CME 官方资料说明 DataMine 通过获授权 API ID 提供已购买历史文�
 GC certified 必须同时通过合约身份、许可、日线/H4 完整性、逐记录可得时间、源文件哈希、合约日历、宏观/事件覆盖、Feature 与 Baseline 冻结。任一失败时输出 blocked/Q0；预测弃权，概率为 `null`。
 
 真实 GC 数据尚未经过本仓库的账户级运行，因此本矩阵只接受软件管线的条件资格，不代表已取得数据权利或预测优势。
-

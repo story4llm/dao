@@ -61,12 +61,12 @@
 - GC 第一版只支持 `GC<month><year>` 单月合约、daily settlement 与同月 H4；不自动选主力、换月或构造连续合约。
 - certified 运行必须提供合格私有 evidence bundle 和冻结基线；缺失时不得从网页补行情或填写占位概率。
 - 首轮 Forecast 的概率必须逐项等于程序冻结的历史频率基线；未经新校准协议，LLM 不得凭叙事调整概率。
-- OANDA/CME 原始数据只允许由符合许可的本地 Agent 读取，不上传至不符合许可的第三方 AI 会话。
+- OANDA/CME 原始数据只允许由符合许可的本地 Agent 读取，不上传至不符合许可的第三方 AI 会话；官方宏观/事件快照由 prepare 命令从白名单官方 HTTPS 地址自动下载到私有目录。
 
 ## 下一步
 
-1. 数据权利人在仓库外选择 XAU/USD 或一个明确 GC 月份，填写实际许可证明并冻结官方宏观/事件时钟。
-2. XAU/USD 执行 `prepare-oanda`；GC 把授权文件转换为规范 JSON 后执行 `prepare-gc`。
+1. 数据权利人在仓库外选择 XAU/USD 或一个明确 GC 月份，填写实际许可证明。
+2. XAU/USD 执行 `prepare-oanda`；GC 把授权文件转换为规范 JSON 后执行 `prepare-gc`，官方宏观/事件快照由运行器自动下载。
 3. 在同一本地环境执行 `validate-bundle --private-root ...`，确认十个硬门、真实文件哈希与实际基线。
 4. 由符合数据许可的本地 AI 按 `prompts/daily-cognition-run-v0.3.md` 生成对应轨道的首份 completed Q1 候选。
 5. 再次通过 bundle 校验并进行人工时间完整性与反方审查。
@@ -74,7 +74,7 @@
 
 ## 阻塞与风险
 
-- 尚未取得本次运行可用的账户级 OANDA/等价私有快照与区域协议记录。
+- 本次 XAU/USD 运行已从 `.env` 读取账户凭据，并自动下载 Treasury、Federal Reserve H.10、FOMC 官方快照；输出位于本地 gitignored private root，未提交原始响应。
 - 尚未取得真实 GC 授权快照和 entitlement/ILA 证明；当前 GC 正例只使用合成数据，不能证明真实预测优势。
 - OANDA 条件通过只覆盖内部使用；完整价格响应不能放入公开 GitHub。
 - 基线算法与契约已实现，但尚未在用户实际 OANDA 快照上冻结，因此当前仍没有可评分真实 Forecast。

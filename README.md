@@ -93,7 +93,7 @@ make validate
 
 ## 执行一次黄金趋势认知
 
-1. 在许可人的本地环境安装运行包并准备三类官方宏观/事件快照。
+1. 在许可人的本地环境安装运行包并填写一次性许可声明；`prepare-*` 会从白名单官方 HTTPS 地址自动下载三类宏观/事件快照到 gitignored private root。
 2. XAU/USD 使用 `prepare-oanda`；单月 COMEX GC 使用 `prepare-gc` 导入已获许可的私有合约、日历、日结算和 H4 快照。不要把凭据或完整受限行情放入聊天或仓库。
 3. 用 `validate-bundle --private-root ...` 验证 Schema、时间、概率、引用和真实文件哈希。
 4. 让本地 AI 读取 `AGENTS.md` 与 `prompts/daily-cognition-run-v0.3.md`，生成 Evidence、MCF 与 Forecast。
@@ -111,4 +111,4 @@ make validate
 
 ## 下一里程碑
 
-双研究轨的软件运行层已经形成。下一步由数据权利人在本地准备 OANDA 或单月 GC 授权快照与实际许可证明，执行相应 prepare 命令和 `validate-bundle`，再由本地 AI 生成真实 `certified` Q1 候选认知帧。具体见[数据源矩阵](docs/data/data-source-qualification-matrix-v0.2.md)、[每日运行手册](docs/harness/DAILY_RUNBOOK.md)与[项目状态](state/PROJECT_STATE.md)。
+双研究轨的软件运行层已经形成。下一步由数据权利人在本地填写 OANDA 或单月 GC 实际许可证明，执行相应 prepare 命令；运行器会自动下载允许的官方快照并执行 `validate-bundle`，再由本地 AI 生成真实 `certified` Q1 候选认知帧。具体见[数据源矩阵](docs/data/data-source-qualification-matrix-v0.2.md)、[每日运行手册](docs/harness/DAILY_RUNBOOK.md)与[项目状态](state/PROJECT_STATE.md)。

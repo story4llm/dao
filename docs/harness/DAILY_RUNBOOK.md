@@ -14,7 +14,7 @@ python3 -m venv .venv
 python -m pip install -e .
 ```
 
-XAU/USD 复制 `templates/private-bundle-config.example.json`；GC 复制 `templates/private-gc-bundle-config.example.json`。在仓库外填写实际协议和本次冻结的官方宏观/事件文件。示例中的 `REPLACE` 或 `example.com` 会被程序拒绝。
+XAU/USD 复制 `templates/private-bundle-config.example.json`；GC 复制 `templates/private-gc-bundle-config.example.json`。在仓库外填写实际协议和一次性许可声明。`official_snapshots[].path` 可省略（或配置 `auto_download: true`），运行器会从 `source_locator` 的白名单官方 HTTPS 地址自动下载到 private root；仅在离线回放时才提供本地文件路径。示例中的 `REPLACE` 或 `example.com` 会被程序拒绝。
 
 在本地交互式输入凭据，避免把值留在 shell history：
 
@@ -34,7 +34,7 @@ python -m dao_runtime.cli prepare-oanda \
   --public-dir runs/YYYY/MM/DD/run-YYYYMMDD-xauusd
 ```
 
-程序会先通过账户 instruments endpoint 确认实际存在 `XAU_USD`，再采集 midpoint D/H4，私有保存 provider 原始响应和 complete-only 规范化响应，冻结 C0、ATR(20)、bar 边界、session sequence hash 与历史频率基线。任何凭据都不会写入产物。
+程序会先通过账户 instruments endpoint 确认实际存在 `XAU_USD`，再采集 midpoint D/H4，并自动抓取 Treasury、Federal Reserve H.10 与 FOMC 官方快照。所有原始响应写入 gitignored private root，manifest 记录实际抓取时间、字节数和 SHA-256；随后私有保存 provider 原始响应和 complete-only 规范化响应，冻结 C0、ATR(20)、bar 边界、session sequence hash 与历史频率基线。任何凭据都不会写入产物。
 
 ### 0.1 单月 COMEX GC
 

@@ -32,6 +32,7 @@ OANDA_BASES = {
     "live": "https://api-fxtrade.oanda.com",
 }
 OFFICIAL_ROLES = {"macro_rates", "macro_usd", "event_clock"}
+OFFICIAL_HOSTS = {"home.treasury.gov", "federalreserve.gov", "www.federalreserve.gov"}
 PLACEHOLDER_PATTERN = re.compile(r"\bREPLACE(?:_ME)?\b")
 EXAMPLE_DOMAIN_PATTERN = re.compile(
     r"(?:^|[/:.@])example\.com(?:[/:?#]|$)",
@@ -41,6 +42,26 @@ EXAMPLE_DOMAIN_PATTERN = re.compile(
 
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _load_local_env(config_path: Path) -> None:
+    """Load only the two expected credentials from a nearby gitignored .env."""
+    candidates = [Path.cwd() / ".env", config_path.resolve().parent / ".env"]
+    for candidate in candidates:
+        if not candidate.is_file():
+            continue
+        for line in candidate.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#") or "=" not in stripped:
+                continue
+            key, value = stripped.split("=", 1)
+            key = key.strip()
+            if key not in {"OANDA_API_TOKEN", "OANDA_ACCOUNT_ID"}:
+                continue
+            value = value.strip().strip("\"'")
+            if value:
+                os.environ.setdefault(key, value)
+        return
 
 
 def _request_json(url: str, token: str) -> tuple[bytes, dict[str, Any], str | None]:
@@ -81,6 +102,32 @@ def _write_raw(path: Path, payload: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("wb") as handle:
         handle.write(payload)
+
+
+def _request_official(url: str) -> bytes:
+    """Fetch one configured official source without allowing arbitrary URLs."""
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme != "https" or parsed.hostname not in OFFICIAL_HOSTS:
+        raise ValueError(f"official snapshot URL is not allowlisted: {url}")
+    request = urllib.request.Request(
+        url,
+        headers={
+            "Accept": "application/xml,text/html,application/json;q=0.9,*/*;q=0.1",
+            "User-Agent": "dao-certified-runtime/0.2.0 (official-snapshot-collector)",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            raw = response.read()
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(
+            f"official snapshot request failed with HTTP {exc.code}: {url}"
+        ) from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f"official snapshot request failed: {url}") from exc
+    if not raw.strip():
+        raise RuntimeError(f"official snapshot response was empty: {url}")
+    return raw
 
 
 def _contains_sensitive_config_key(value: Any) -> bool:
@@ -198,18 +245,33 @@ def _copy_official_snapshot(
     role = item.get("role")
     if role not in OFFICIAL_ROLES:
         raise ValueError(f"unsupported official snapshot role: {role}")
+    source_locator = item.get("source_locator")
     source_path = Path(str(item.get("path", ""))).expanduser().resolve()
-    if not source_path.is_file():
-        raise ValueError(f"official snapshot file does not exist: {source_path}")
-    destination = private_dir / f"official-{role}{source_path.suffix or '.snapshot'}"
-    shutil.copyfile(source_path, destination)
-    captured_at = item.get("captured_at")
-    available_at = item.get("available_at")
-    observed_at = item.get("observed_at", available_at)
-    if not all(
-        isinstance(value, str) for value in (captured_at, available_at, observed_at)
-    ):
-        raise ValueError(f"{role} requires captured_at, available_at and observed_at")
+    auto_download = item.get("auto_download", not source_path.is_file())
+    if auto_download:
+        if not isinstance(source_locator, str) or not source_locator:
+            raise ValueError(f"{role} requires source_locator for auto-download")
+        raw = _request_official(source_locator)
+        suffix = Path(urllib.parse.urlparse(source_locator).path).suffix or ".snapshot"
+        destination = private_dir / f"official-{role}{suffix}"
+        _write_raw(destination, raw)
+        captured_at = format_datetime(utc_now())
+        available_at = captured_at
+        observed_at = item.get("observed_at", captured_at)
+    else:
+        if not source_path.is_file():
+            raise ValueError(f"official snapshot file does not exist: {source_path}")
+        destination = private_dir / f"official-{role}{source_path.suffix or '.snapshot'}"
+        shutil.copyfile(source_path, destination)
+        captured_at = item.get("captured_at")
+        available_at = item.get("available_at")
+        observed_at = item.get("observed_at", available_at)
+        if not all(
+            isinstance(value, str) for value in (captured_at, available_at, observed_at)
+        ):
+            raise ValueError(f"{role} requires captured_at, available_at and observed_at")
+    if not isinstance(observed_at, str):
+        raise ValueError(f"{role} requires observed_at")
     freshness_max_seconds = int(item.get("freshness_max_seconds", 0))
     if freshness_max_seconds <= 0:
         raise ValueError(f"{role} requires positive freshness_max_seconds")
@@ -220,7 +282,7 @@ def _copy_official_snapshot(
         "request_locator_redacted": item.get("request_locator_redacted")
         or item.get("source_locator"),
         "request_id": None,
-        "source_locator": item["source_locator"],
+        "source_locator": source_locator,
         "captured_at": captured_at,
         "available_at": available_at,
         "sha256": sha256_file(destination),
@@ -245,6 +307,7 @@ def prepare_private_bundle(
 ) -> dict[str, Path]:
     """Collect account-scoped OANDA data and emit a ready certified skeleton."""
 
+    _load_local_env(config_path)
     token = os.environ.get("OANDA_API_TOKEN")
     account_id = os.environ.get("OANDA_ACCOUNT_ID")
     if not token or not account_id:
