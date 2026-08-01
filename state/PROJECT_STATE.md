@@ -77,7 +77,7 @@
 ## 阻塞与风险
 
 - 本次 XAU/USD 运行已从 `.env` 读取账户凭据，并自动下载 Treasury、Federal Reserve H.10、FOMC 官方快照；输出位于本地 gitignored private root，未提交原始响应。
-- GC 轨尚未对真实 Kaggle 数据集执行首次下载运行；数据集为 TradingView 派生、exploratory/Q0，不能证明真实预测优势。
+- GC 轨已完成首次真实 Kaggle 下载运行：CLI、ZIP 哈希、解压和 daily CSV 识别成功，但数据最后观测日为 2025-10-14，截至 2026-08-01 已陈旧约 291 天，运行按设计 blocked，尚未生成当前 Forecast。
 - OANDA 条件通过只覆盖内部使用；完整价格响应不能放入公开 GitHub。
 - 基线算法与契约已实现，但尚未在用户实际 OANDA 快照上冻结，因此当前仍没有可评分真实 Forecast。
 - GitHub 连接无法访问私有行情；OANDA 原始数据与 Kaggle 下载文件不应上传云端，必须由符合许可的本地 Agent 读取私有目录。

@@ -250,7 +250,7 @@ def validate_instance(
 
 def validate_internal_links(errors: list[str]) -> None:
     for markdown in sorted(ROOT.rglob("*.md")):
-        if ".git" in markdown.parts:
+        if any(part in {".git", ".venv", "build", "dist"} for part in markdown.parts):
             continue
         text = markdown.read_text(encoding="utf-8")
         for raw_target in LINK_PATTERN.findall(text):
