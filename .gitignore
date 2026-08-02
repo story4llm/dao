@@ -3,6 +3,7 @@
 .env.*
 secrets/
 private-bundle-config*.json
+private-gc-bundle-config*.json
 !templates/private-bundle-config.example.json
 
 # Licensed or account-scoped market data
